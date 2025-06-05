@@ -21,7 +21,7 @@ A full-stack e-commerce platform for plants, built with React (Frontend) and Nod
 ### Setup
 1. Navigate to frontend directory:
    ```bash
-   cd growmor-plant-haven
+   cd frontend
    ```
 
 2. Install dependencies:
@@ -52,7 +52,7 @@ A full-stack e-commerce platform for plants, built with React (Frontend) and Nod
 ### Setup
 1. Navigate to backend directory:
    ```bash
-   cd gromor_backend170525
+   cd backend
    ```
 
 2. Install dependencies:
