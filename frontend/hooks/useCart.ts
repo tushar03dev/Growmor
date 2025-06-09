@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query"
 import { useSession } from "next-auth/react"
 import axios from "axios"
-import { toast } from "../components/ui/use-toast"
+import { toast } from "@/components/ui/use-toast"
 
 export const useCart = () => {
   const { data: session } = useSession()
