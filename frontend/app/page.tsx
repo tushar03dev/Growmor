@@ -1,84 +1,139 @@
-import Head from "next/head"
 import Link from "next/link"
+import { HeroSlider } from "@/components/hero-slider"
+import { FeaturedProducts } from "@/components/featured-products"
+import { BlogCard } from "@/components/blog-card"
+import { Button } from "@/components/ui/button"
+import { dummyBlogPosts } from "@/lib/dummy-data"
 
 export default function Home() {
   return (
     <>
-      <Head>
-        <title>GROWMOR - Premium Plant Store</title>
-        <meta name="description" content="Premium plants for your home and garden" />
-        <meta name="viewport" content="width=device-width, initial-scale=1" />
-        <link rel="icon" href="/favicon.ico" />
-      </Head>
+      {/* Hero Slider */}
+      <HeroSlider />
 
-      <main className="min-h-screen bg-gray-50">
-        {/* Header */}
-        <header className="bg-white shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between items-center h-16">
-              <div className="flex items-center">
-                <h1 className="text-2xl font-bold text-primary-600">GROWMOR</h1>
-              </div>
-              <nav className="flex space-x-8">
-                <Link href="/" className="text-gray-900 hover:text-primary-600">
-                  Home
-                </Link>
-                <Link href="/plants" className="text-gray-900 hover:text-primary-600">
-                  Plants
-                </Link>
-                <Link href="/cart" className="text-gray-900 hover:text-primary-600">
-                  Cart
-                </Link>
-                <Link href="/auth/signin" className="text-gray-900 hover:text-primary-600">
-                  Sign In
-                </Link>
-              </nav>
-            </div>
+      {/* Featured Products */}
+      <FeaturedProducts />
+
+      {/* Categories Section */}
+      <section className="py-12 bg-muted/50">
+        <div className="container">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-bold mb-2">Shop by Category</h2>
+            <p className="text-muted-foreground">Find the perfect plants for every space</p>
           </div>
-        </header>
 
-        {/* Hero Section */}
-        <section className="bg-primary-600 text-white">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24">
-            <div className="text-center">
-              <h1 className="text-4xl md:text-6xl font-bold mb-6">Welcome to GROWMOR</h1>
-              <p className="text-xl md:text-2xl mb-8 text-primary-100">Premium plants for your home and garden</p>
-              <Link href="/plants" className="btn-secondary">
-                Shop Now
-              </Link>
-            </div>
-          </div>
-        </section>
-
-        {/* Features */}
-        <section className="py-16">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-              <div className="text-center">
-                <div className="bg-primary-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-primary-600 text-2xl">🌱</span>
-                </div>
-                <h3 className="text-xl font-semibold mb-2">Premium Quality</h3>
-                <p className="text-gray-600">Hand-picked plants with guaranteed quality</p>
-              </div>
-              <div className="text-center">
-                <div className="bg-primary-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-primary-600 text-2xl">🚚</span>
-                </div>
-                <h3 className="text-xl font-semibold mb-2">Fast Delivery</h3>
-                <p className="text-gray-600">Quick and safe delivery to your doorstep</p>
-              </div>
-              <div className="text-center">
-                <div className="bg-primary-100 w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <span className="text-primary-600 text-2xl">💚</span>
-                </div>
-                <h3 className="text-xl font-semibold mb-2">Expert Care</h3>
-                <p className="text-gray-600">Professional care guides and support</p>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <div className="relative rounded-lg overflow-hidden h-64 group">
+              <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors z-10" />
+              <div
+                className="absolute inset-0 bg-cover bg-center z-0"
+                style={{ backgroundImage: "url('/placeholder.svg?height=400&width=600')" }}
+              />
+              <div className="absolute inset-0 flex flex-col items-center justify-center z-20 text-white">
+                <h3 className="text-2xl font-bold mb-4">Indoor Plants</h3>
+                <Link href="/plants?category=indoor">
+                  <Button
+                    variant="outline"
+                    className="bg-white/20 backdrop-blur-sm border-white text-white hover:bg-white hover:text-black"
+                  >
+                    Shop Now
+                  </Button>
+                </Link>
               </div>
             </div>
+
+            <div className="relative rounded-lg overflow-hidden h-64 group">
+              <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors z-10" />
+              <div
+                className="absolute inset-0 bg-cover bg-center z-0"
+                style={{ backgroundImage: "url('/placeholder.svg?height=400&width=600')" }}
+              />
+              <div className="absolute inset-0 flex flex-col items-center justify-center z-20 text-white">
+                <h3 className="text-2xl font-bold mb-4">Outdoor Plants</h3>
+                <Link href="/plants?category=outdoor">
+                  <Button
+                    variant="outline"
+                    className="bg-white/20 backdrop-blur-sm border-white text-white hover:bg-white hover:text-black"
+                  >
+                    Shop Now
+                  </Button>
+                </Link>
+              </div>
+            </div>
+
+            <div className="relative rounded-lg overflow-hidden h-64 group">
+              <div className="absolute inset-0 bg-black/20 group-hover:bg-black/40 transition-colors z-10" />
+              <div
+                className="absolute inset-0 bg-cover bg-center z-0"
+                style={{ backgroundImage: "url('/placeholder.svg?height=400&width=600')" }}
+              />
+              <div className="absolute inset-0 flex flex-col items-center justify-center z-20 text-white">
+                <h3 className="text-2xl font-bold mb-4">Succulents</h3>
+                <Link href="/plants?category=succulents">
+                  <Button
+                    variant="outline"
+                    className="bg-white/20 backdrop-blur-sm border-white text-white hover:bg-white hover:text-black"
+                  >
+                    Shop Now
+                  </Button>
+                </Link>
+              </div>
+            </div>
           </div>
-        </section>
-      </main>
+        </div>
+      </section>
+
+      {/* Sale Products */}
+      <FeaturedProducts
+          title="Special Offers"
+          subtitle="Limited time deals on premium plants"
+          mode="sale"
+      />
+
+
+      {/* Blog Section */}
+      <section className="py-12 bg-muted/50">
+        <div className="container">
+          <div className="text-center mb-10">
+            <h2 className="text-3xl font-bold mb-2">Plant Care Tips</h2>
+            <p className="text-muted-foreground">Learn how to keep your plants thriving</p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {dummyBlogPosts.map((post) => (
+              <BlogCard key={post.id} post={post} />
+            ))}
+          </div>
+
+          <div className="mt-10 text-center">
+            <Link href="/blog">
+              <Button variant="outline" size="lg">
+                View All Articles
+              </Button>
+            </Link>
+          </div>
+        </div>
+      </section>
+
+      {/* Newsletter */}
+      <section className="py-16 bg-primary text-primary-foreground">
+        <div className="container">
+          <div className="max-w-2xl mx-auto text-center">
+            <h2 className="text-3xl font-bold mb-4">Join Our Newsletter</h2>
+            <p className="mb-6">Subscribe to receive plant care tips, exclusive offers, and updates on new arrivals.</p>
+
+            <form className="flex flex-col sm:flex-row gap-2">
+              <input
+                type="email"
+                placeholder="Your email address"
+                className="flex-1 px-4 py-2 rounded-md border border-primary-foreground/20 bg-transparent placeholder:text-primary-foreground/70"
+                required
+              />
+              <Button variant="secondary">Subscribe</Button>
+            </form>
+          </div>
+        </div>
+      </section>
     </>
   )
 }
