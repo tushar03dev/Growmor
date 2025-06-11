@@ -2,6 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 import { useRouter } from "next/navigation"
+import axios from "axios";
 
 type User = {
   id: string
@@ -9,6 +10,8 @@ type User = {
   email: string
   role: "user" | "admin"
 }
+
+let tempUser:any;
 
 type AuthContextType = {
   user: User | null
@@ -31,7 +34,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     // Check if user is logged in
     const checkAuth = async () => {
       try {
-        const storedUser = localStorage.getItem("user")
+        const storedUser = localStorage.getItem("token")
         if (storedUser) {
           setUser(JSON.parse(storedUser))
         }
@@ -47,68 +50,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      // This would be replaced with actual API call
-      // Simulating API call for now
-      await new Promise((resolve) => setTimeout(resolve, 1000))
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, { email, password });
+      if (response.data) {
+        localStorage.setItem('token', response.data.token);
+        alert('Login successful!');
+        // Redirect to dashboard or another page
+        window.location.href = '/';
 
-      // Mock response - in real app, this would come from your backend
-      const mockUser = {
-        id: "user123",
-        name: email.split("@")[0],
-        email,
-        role: email.includes("admin") ? ("admin" as const) : ("user" as const),
+        const userData = {
+          id: "user-" + Math.random().toString(36).substr(2, 9),
+          name: response.data.name,
+          role: response.data.role,
+          email,
+        }
+        localStorage.setItem("user", JSON.stringify(userData))
+
+        setUser(userData)
+        return true
+      } else{
+        console.error('Login failed. Please try again.');
+        return false
       }
-
-      setUser(mockUser)
-      localStorage.setItem("user", JSON.stringify(mockUser))
-      return true
     } catch (error) {
       console.error("Login failed:", error)
       return false
     }
   }
 
-  const signup = async (name: string, email: string, password: string): Promise<boolean> => {
-    try {
-      // This would be replaced with actual API call
-      // Simulating API call for now
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      // Store OTP token (in real app, this would come from your backend)
-      const mockOtpToken = "mock-otp-token-123456"
-      localStorage.setItem("otpToken", JSON.stringify(mockOtpToken))
-
-      return true
-    } catch (error) {
-      console.error("Signup failed:", error)
-      return false
-    }
-  }
-
-  const verifyOtp = async (token: string, otp: string): Promise<boolean> => {
-    try {
-      // This would be replaced with actual API call
-      // Simulating API call for now
-      await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      // Mock user creation after OTP verification
-      const mockUser = {
-        id: "user456",
-        name: "New User",
-        email: "user@example.com",
-        role: "user" as const,
-      }
-
-      setUser(mockUser)
-      localStorage.setItem("user", JSON.stringify(mockUser))
-      localStorage.removeItem("otpToken")
-
-      return true
-    } catch (error) {
-      console.error("OTP verification failed:", error)
-      return false
-    }
-  }
 
   const logout = () => {
     setUser(null)
