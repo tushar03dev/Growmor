@@ -77,6 +77,28 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const signup = async (name: string, email: string, password: string): Promise<boolean> => {
+    try {
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/auth/signup`, { name, email, password });
+      if (response.data) {
+        // Temporarily store user data
+        tempUser = { name, email};
+        alert("Otp sent successfully");
+
+        localStorage.setItem("otpToken", JSON.stringify(response.data.token));
+
+        return true
+      } else{
+        console.error('Otp not sent. Please try again.');
+        return false
+      }
+    } catch (error) {
+      console.error("Signup failed:", error)
+      return false
+    }
+  }
+
+
 
   const logout = () => {
     setUser(null)
