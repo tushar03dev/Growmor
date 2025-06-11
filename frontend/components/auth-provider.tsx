@@ -98,7 +98,34 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const verifyOtp = async (otpToken: string, otp: string): Promise<boolean> => {
+    try {
+      const response = await axios.post(`${process.env.NEXT_API_BASE_URL}/auth/verify`, {otpToken, otp });
 
+      if (response.data) {
+        localStorage.setItem('token', JSON.stringify(response.data.token));
+
+        // Mock user data
+        const userData = {
+          id: "user-" + Math.random().toString(36).substr(2, 9),
+          name: tempUser.name,
+          email: tempUser.email,
+          role: response.data.role,
+        }
+
+        setUser(userData)
+        localStorage.setItem("user", JSON.stringify(userData))
+        return true
+
+      } else {
+        console.error('Signup failed. Please try again.');
+        return false
+      }
+    } catch (error) {
+      console.error("OTP verification failed:", error)
+      return false
+    }
+  }
 
   const logout = () => {
     setUser(null)
