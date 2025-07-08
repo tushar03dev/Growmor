@@ -97,34 +97,29 @@ export const signIn = async (req, res) => {
   }
 };
 
-export const adminSignup = async (req, res) => {
-  const { email, password, adminKey } = req.body;
+export const adminLogin = asyncHandler(async (req, res) => {
+  const { email, password } = req.body;
 
-  if (!adminKey || adminKey !== process.env.ADMIN_SECRET_KEY) {
-    return res.status(403).json({ message: 'Invalid admin key' });
+  const admin = await Admin.findOne({ email });
+  if (!admin) {
+    return res.status(401).json({ message: 'Invalid credentials' });
   }
 
-  const existingAdmin = await Admin.findOne({ email }); // if Admin is a separate model
-  if (existingAdmin) {
-    return res.status(400).json({ message: 'Admin already exists' });
+  const isPasswordValid = await bcrypt.compare(password, admin.password);
+  if (!isPasswordValid) {
+    return res.status(401).json({ message: 'Invalid credentials' });
   }
-
-  const hashedPassword = await bcrypt.hash(password, 10);
-
-  const admin = new Admin({ email, password: hashedPassword, isAdmin: true });
-  await admin.save();
 
   const token = generateToken(admin);
 
-  res.status(201).json({
+  res.json({
     token,
     admin: {
       id: admin._id,
-      email: admin.email,
-      isAdmin: true
+      email: admin.email
     }
   });
-}
+});
 
 exports.adminSignup = asyncHandler(async (req, res) => {
   const { email, password, adminKey } = req.body;
