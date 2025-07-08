@@ -3,6 +3,7 @@ import cors from 'cors';
 import dotenv from 'dotenv';
 import connectDB from "./config/db.js";
 import authRoutes from "./routes/authRoutes.js";
+import otpRoutes from "./routes/otpRoutes.js";
 
 // Load environment variables
 dotenv.config();
@@ -20,6 +21,7 @@ app.use(express.urlencoded({ extended: true }));
 
 // Routes
 app.use("/auth", authRoutes);
+app.use("/otp", otpRoutes);
 
 // Start server
 const PORT = process.env.PORT;
