@@ -1,14 +1,10 @@
-//Controller/admin + users
-import {User} from "../models/model.js";
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+import redisClient from '../config/redis.js';
+import {Admin, User} from "../models/model.js";
 
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const prisma = require("../utils/prismaImport.js");
-require('dotenv').config();
-const asyncHandler = require('../utils/asyncHandler');
-import redisClient from '../config/redis';
-
-
+dotenv.config();
 
 const JWT_EXPIRES_IN = '1d';
 
@@ -75,7 +71,7 @@ export const completeSignUp = async (req, res) => {
   }
 };
 
-// Sign-in route
+
 export const signIn = async (req, res) => {
   const { email, password } = req.body;
   try {
@@ -97,7 +93,7 @@ export const signIn = async (req, res) => {
   }
 };
 
-export const adminLogin = asyncHandler(async (req, res) => {
+export const adminLogin = async (req, res) => {
   const { email, password } = req.body;
 
   const admin = await Admin.findOne({ email });
@@ -119,131 +115,33 @@ export const adminLogin = asyncHandler(async (req, res) => {
       email: admin.email
     }
   });
-});
+};
 
-exports.adminSignup = asyncHandler(async (req, res) => {
+export const adminSignup = async (req, res) => {
   const { email, password, adminKey } = req.body;
 
   if (!adminKey || adminKey !== process.env.ADMIN_SECRET_KEY) {
     return res.status(403).json({ message: 'Invalid admin key' });
   }
 
-  const existingAdmin = await prisma.admin.findUnique({ where: { email } });
+  const existingAdmin = await Admin.findOne({ email }); // if Admin is a separate model
   if (existingAdmin) {
-    return res.status(400).json({ message: 'Email already registered as admin' });
+    return res.status(400).json({ message: 'Admin already exists' });
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  const admin = await prisma.admin.create({
-    data: {
-      email,
-      password: hashedPassword,
-      isAdmin: true
-    }
-  });
+  const admin = new Admin({ email, password: hashedPassword, isAdmin: true });
+  await admin.save();
 
   const token = generateToken(admin);
 
   res.status(201).json({
     token,
     admin: {
-      id: admin.id,
+      id: admin._id,
       email: admin.email,
       isAdmin: true
     }
   });
-});
-
-exports.adminLogin = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
-
-  const admin = await prisma.admin.findUnique({ where: { email } });
-  if (!admin) {
-    return res.status(401).json({ message: 'Invalid email or password' });
-  }
-
-  const isPasswordValid = await bcrypt.compare(password, admin.password);
-  if (!isPasswordValid) {
-    return res.status(401).json({ message: 'Invalid email or password' });
-  }
-
-  const token = generateToken(admin);
-
-  res.json({
-    token,
-    admin: {
-      id: admin.id,
-      email: admin.email
-    }
-  });
-});
-
-exports.login = asyncHandler(async (req, res) => {
-  const { email, password } = req.body;
-
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) {
-    return res.status(401).json({ message: 'Invalid email or password' });
-  }
-
-  const isPasswordValid = await bcrypt.compare(password, user.password);
-  if (!isPasswordValid) {
-    return res.status(401).json({ message: 'Invalid email or password' });
-  }
-
-  const token = generateToken(user);
-
-  res.json({
-    token,
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-      phone: user.phone,
-      address: user.address,
-      isAdmin: user.isAdmin
-    }
-  });
-});
-
-exports.logout = asyncHandler(async (req, res) => {
-  res.json({
-    message: 'Logged out successfully',
-    instruction: 'Please remove the token from your client storage'
-  });
-});
-
-exports.getCurrentUser = asyncHandler(async (req, res) => {
-  // First try to find admin
-  const admin = await prisma.admin.findUnique({
-    where: { id: req.user.id }
-  });
-
-  if (admin) {
-    return res.json({
-      id: admin.id,
-      email: admin.email,
-      isAdmin: true
-    });
-  }
-
-  // If not admin, try user
-  const user = await prisma.user.findUnique({
-    where: { id: req.user.id },
-    select: {
-      id: true,
-      email: true,
-      name: true,
-      phone: true,
-      address: true,
-      isAdmin: true
-    }
-  });
-
-  if (!user) {
-    return res.status(404).json({ message: 'User not found' });
-  }
-
-  res.json(user);
-});
+}
