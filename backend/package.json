@@ -6,9 +6,6 @@
   "scripts": {
     "start": "node src/index.js",
     "dev": "nodemon src/index.js",
-    "prisma:generate": "prisma generate",
-    "prisma:migrate": "prisma migrate dev",
-    "prisma:studio": "prisma studio",
     "test": "jest"
   },
   "keywords": [],
@@ -31,9 +28,6 @@
     "pg": "^8.16.0"
   },
   "devDependencies": {
-    "jest": "^29.7.0",
     "nodemon": "^3.0.1",
-    "prisma": "^6.8.2",
-    "supertest": "^6.3.3"
   }
 }
