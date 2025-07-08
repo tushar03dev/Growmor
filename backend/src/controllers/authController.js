@@ -97,39 +97,34 @@ export const signIn = async (req, res) => {
   }
 };
 
-exports.signup = asyncHandler(async (req, res) => {
-  const { email, password, name } = req.body;
+export const adminSignup = async (req, res) => {
+  const { email, password, adminKey } = req.body;
 
-  const existingUser = await prisma.user.findUnique({ where: { email } });
-  if (existingUser) {
-    return res.status(400).json({ message: 'Email already registered' });
+  if (!adminKey || adminKey !== process.env.ADMIN_SECRET_KEY) {
+    return res.status(403).json({ message: 'Invalid admin key' });
+  }
+
+  const existingAdmin = await Admin.findOne({ email }); // if Admin is a separate model
+  if (existingAdmin) {
+    return res.status(400).json({ message: 'Admin already exists' });
   }
 
   const hashedPassword = await bcrypt.hash(password, 10);
 
-  const user = await prisma.user.create({
-    data: {
-      email,
-      password: hashedPassword,
-      name,
+  const admin = new Admin({ email, password: hashedPassword, isAdmin: true });
+  await admin.save();
 
-      isAdmin: false
-    }
-  });
-
-  const token = generateToken(user);
+  const token = generateToken(admin);
 
   res.status(201).json({
     token,
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-
-      isAdmin: user.isAdmin
+    admin: {
+      id: admin._id,
+      email: admin.email,
+      isAdmin: true
     }
   });
-});
+}
 
 exports.adminSignup = asyncHandler(async (req, res) => {
   const { email, password, adminKey } = req.body;
