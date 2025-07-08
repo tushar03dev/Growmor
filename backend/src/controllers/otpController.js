@@ -19,3 +19,20 @@ export const sendOTP = async (email) => {
     return token;
 }
 
+export const verifyOTP = async (token, otp) => {
+    try {
+        if (!otp || !token) {
+            return {success: false, message: 'Token and OTP are required'};
+        }
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
+
+        if (decoded.otp === otp) {
+            return {success: true, message: 'OTP verified successfully'};
+        } else {
+            return {success: false, message: 'Invalid OTP'};
+        }
+    } catch (error) {
+        return {success: false, message: 'Invalid or expired token'};
+    }
+}
