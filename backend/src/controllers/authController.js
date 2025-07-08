@@ -79,22 +79,21 @@ export const completeSignUp = async (req, res) => {
 export const signIn = async (req, res) => {
   const { email, password } = req.body;
   try {
-
     const user = await User.findOne({ email });
     if (!user) {
-      return res.status(400).send('User does not exist. Please sign up.');
+      return res.status(400).send('User not found.');
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) {
-      return res.status(400).send('Invalid password');
+      return res.status(400).send('Invalid credentials.');
     }
 
-    const token = jwt.sign({ userId: user._id, userName: user.name}, process.env.JWT_SECRET, { expiresIn: '1d' });
-    res.json({ token, name:user.name });
+    const token = generateToken(user);
+    res.json({ token, name: user.name });
   } catch (err) {
-    console.error('Error during sign-in:', err);
-    res.status(500).send('Error during sign-in');
+    console.error('Sign-in error:', err);
+    res.status(500).send('Server error during sign-in.');
   }
 };
 
