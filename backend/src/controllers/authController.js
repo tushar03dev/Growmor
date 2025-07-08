@@ -45,46 +45,35 @@ export const signUp = async (req, res) => {
   }
 };
 
-// OTP verification route
+// OTP verification
 export const completeSignUp = async (req, res) => {
   const { otpToken, otp } = req.body;
 
   if (!otpToken || !otp) {
-    res.status(400).json({ message: 'Token and OTP are required.' });
-    return;
+    return res.status(400).json({ message: 'Token and OTP are required.' });
   }
 
   try {
-
     const userDataStr = await redisClient.get(`signup:${otpToken}`);
     if (!userDataStr) {
-      return res.status(400).json({ message: 'No user data found or token expired.' });
+      return res.status(400).json({ message: 'Token expired or not found.' });
     }
 
     const { name, email, password } = JSON.parse(userDataStr);
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-      // Create the new user
-      const user = new User({ name: tempUser.name, email: tempUser.email, password: hashedPassword });
-      await user.save();
-
-
-      // Generate JWT token
-      const token = jwt.sign({ userId: user._id,  userName: user.name }, process.env.JWT_SECRET, { expiresIn: '1d' });
+    const user = new User({ name, email, password: hashedPassword, isAdmin: false });
+    await user.save();
 
     await redisClient.del(`signup:${otpToken}`);
 
-      // Respond with token and success message
-      res.status(201).json({ token, message: 'OTP verified successfully.User signed up successfully.' });
-    } else {
-      // OTP verification failed
-      res.status(400).json({ message: otpVerificationResult.message });
-    }
-
+    const token = generateToken(user);
+    res.status(201).json({ token, message: 'User signed up successfully.' });
   } catch (err) {
-    console.error('Error verifying OTP:', err);
-    res.status(500).send('Error verifying OTP');
+    console.error('Complete sign-up error:', err);
+    res.status(500).send('Server error during OTP verification.');
   }
-}    ;
+};
 
 // Sign-in route
 export const signIn = async (req, res) => {
