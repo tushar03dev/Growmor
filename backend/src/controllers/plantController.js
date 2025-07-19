@@ -1,5 +1,6 @@
 import Plant from '../models/model.js';
-import {getObjectURL} from '../utils/s3Utils.js';
+import { uploadToS3, getObjectURL } from '../utils/s3Utils.js';
+import fs from 'fs';
 
 // UTIL: Generates a signed S3 URL for a Plant image, if available
 const withImageUrl = async (plantDoc) => {
@@ -63,6 +64,53 @@ export const getPlantById = async (req, res) => {
     res.json(await withImageUrl(plant));
   } catch (err) {
     res.status(500).json({ message: 'Error fetching plant' });
+  }
+};
+
+// Create plant with image upload to S3
+export const createPlant = async (req, res) => {
+  const { name, description, price, categoryId, discountPercentage, isTrending, isBestSeller } = req.body;
+
+  if (!name || !description || !price || !categoryId)
+    return res.status(400).json({ message: 'Missing required fields: name, description, price, categoryId' });
+
+  let imageData = null;
+
+  if (req.file) {
+    const s3Key = `plants/${Date.now()}_${req.file.originalname}`;
+    try {
+      await uploadToS3(
+          req.file.buffer || fs.readFileSync(req.file.path), // Adapt for Multer storage mode
+          s3Key,
+          req.file.mimetype
+      );
+      imageData = {
+        key: s3Key,
+        contentType: req.file.mimetype,
+        imageName: req.file.originalname,
+        size: req.file.size,
+      };
+      try { if (req.file.path) fs.unlinkSync(req.file.path); } catch (_) {}
+    } catch (e) {
+      try { if (req.file.path) fs.unlinkSync(req.file.path); } catch (_) {}
+      return res.status(500).json({ message: 'Failed to upload image' });
+    }
+  }
+
+  try {
+    const plant = await Plant.create({
+      name: name.trim(),
+      description: description.trim(),
+      price: parseFloat(price),
+      categoryId,
+      discountPercentage: discountPercentage ? parseFloat(discountPercentage) : 0,
+      isTrending: isTrending === 'true' || isTrending === true,
+      isBestSeller: isBestSeller === 'true' || isBestSeller === true,
+      image: imageData,
+    });
+    res.status(201).json(await withImageUrl(plant));
+  } catch (e) {
+    res.status(500).json({ message: 'Failed to create plant' });
   }
 };
 
