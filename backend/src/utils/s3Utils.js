@@ -1,4 +1,4 @@
-import {GetObjectCommand, S3Client} from "@aws-sdk/client-s3";
+import {GetObjectCommand, PutObjectCommand, S3Client} from "@aws-sdk/client-s3";
 import {getSignedUrl} from "@aws-sdk/s3-request-presigner";
 import dotenv from "dotenv";
 
@@ -33,5 +33,20 @@ export async function getObjectURL(key: string) {
     }
 }
 
-
+// Upload file stream directly to S3
+export async function uploadToS3(fileStream: Buffer, s3Key: string, contentType: string) {
+    try {
+        const uploadParams = {
+            Bucket: process.env.AWS_BUCKET_NAME,
+            Key: s3Key,
+            Body: fileStream,
+            ContentType: contentType,
+        };
+        await s3Client.send(new PutObjectCommand(uploadParams));
+        console.log(`Successfully uploaded ${s3Key} to S3`);
+    } catch (err) {
+        console.error(`Error uploading ${s3Key} to S3:`, err);
+        throw err;
+    }
+}
 
