@@ -1,4 +1,4 @@
-import {GetObjectCommand, PutObjectCommand, S3Client} from "@aws-sdk/client-s3";
+import {DeleteObjectCommand, GetObjectCommand, PutObjectCommand, S3Client} from "@aws-sdk/client-s3";
 import {getSignedUrl} from "@aws-sdk/s3-request-presigner";
 import dotenv from "dotenv";
 
@@ -50,3 +50,11 @@ export async function uploadToS3(fileStream: Buffer, s3Key: string, contentType:
     }
 }
 
+// Delete object from S3
+export async function deleteFromS3(key: string) {
+    const command = new DeleteObjectCommand({
+        Bucket: process.env.AWS_BUCKET_NAME,
+        Key: key,
+    });
+    await s3Client.send(command);
+}
