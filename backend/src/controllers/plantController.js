@@ -114,3 +114,40 @@ export const createPlant = async (req, res) => {
   }
 };
 
+// Update plant (with optional image upload)
+export const updatePlant = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) return res.status(400).json({ message: 'Invalid plant ID' });
+
+    let data = { ...req.body };
+    if (data.price) data.price = parseFloat(data.price);
+    if (data.discountPercentage) data.discountPercentage = parseFloat(data.discountPercentage);
+
+    // If updating image
+    if (req.file) {
+      const s3Key = `plants/${Date.now()}_${req.file.originalname}`;
+      await uploadToS3(
+          req.file.buffer || fs.readFileSync(req.file.path),
+          s3Key,
+          req.file.mimetype
+      );
+      data.image = {
+        key: s3Key,
+        contentType: req.file.mimetype,
+        imageName: req.file.originalname,
+        size: req.file.size,
+      };
+      try { if (req.file.path) fs.unlinkSync(req.file.path); } catch (_) {}
+    }
+
+    const plant = await Plant.findByIdAndUpdate(id, data, { new: true })
+        .populate('categoryId');
+    if (!plant) return res.status(404).json({ message: 'Plant not found' });
+
+    res.json(await withImageUrl(plant));
+  } catch (err) {
+    res.status(500).json({ message: 'Error updating plant' });
+  }
+};
+
