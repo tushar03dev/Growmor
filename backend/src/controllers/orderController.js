@@ -75,3 +75,13 @@ export const getOrderById = async (req, res) => {
   }
 };
 
+export const updateOrderStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+    const order = await Order.findByIdAndUpdate(id, { status }, { new: true });
+    res.json(order);
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
