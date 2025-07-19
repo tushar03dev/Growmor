@@ -59,5 +59,16 @@ export const addItemToCart = async (req, res) => {
   }
 };
 
+export const updateCartItem = async (req, res) => {
+  try {
+    const { itemId } = req.params;
+    const { quantity } = req.body;
+    const cartItem = await CartItem.findByIdAndUpdate(itemId, { quantity }, { new: true });
+    res.json(cartItem);
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
+
 
 
