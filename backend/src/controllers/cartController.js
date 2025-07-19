@@ -70,5 +70,13 @@ export const updateCartItem = async (req, res) => {
   }
 };
 
-
+export const removeItemFromCart = async (req, res) => {
+  try {
+    const { itemId } = req.params;
+    await CartItem.findByIdAndDelete(itemId);
+    res.json({ message: 'Cart item removed' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
 
