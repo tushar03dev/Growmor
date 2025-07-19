@@ -1,4 +1,4 @@
-import {Plant} from '../models/model.js';
+import Plant from '../models/model.js';
 import {getObjectURL} from '../utils/s3Utils.js';
 
 // UTIL: Generates a signed S3 URL for a Plant image, if available
@@ -44,6 +44,25 @@ export const getBestSellerPlants = async (req, res) => {
     res.json(plantsWithUrls);
   } catch (err) {
     res.status(500).json({ message: 'Error fetching bestsellers' });
+  }
+};
+
+// Get a single plant by ID
+export const getPlantById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+      return res.status(400).json({ message: 'Invalid plant ID' });
+    }
+    const plant = await Plant.findById(id)
+        .populate('categoryId')
+        .populate({ path: 'reviews', populate: { path: 'user', select: 'name' } });
+
+    if (!plant) return res.status(404).json({ message: 'Plant not found' });
+
+    res.json(await withImageUrl(plant));
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching plant' });
   }
 };
 
