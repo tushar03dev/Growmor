@@ -19,24 +19,22 @@ const UserSchema = new Schema({
 const CategorySchema = new Schema({
     name: { type: String, required: true, unique: true },
     description: { type: String, required: true },
-    plants: [{ type: Schema.Types.ObjectId, ref: 'Plant' }],
-    products: [{ type: Schema.Types.ObjectId, ref: 'Product' }]
+    plants: [{ type: Schema.Types.ObjectId, ref: 'Plant' }]
 });
 
 const DiscountSchema = new Schema({
     percent: { type: Number, required: true },
     startsAt: { type: Date, required: true },
     endsAt: { type: Date, required: true },
-    products: [{ type: Schema.Types.ObjectId, ref: 'Product' }]
+    plants: [{ type: Schema.Types.ObjectId, ref: 'Plant' }]
 });
 
 const ReviewSchema = new Schema({
-    rating: { type: Number, required: true },
-    comment: { type: String },
-    productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
     userId: { type: Schema.Types.ObjectId, ref: 'User', required: true },
+    plantId: { type: Schema.Types.ObjectId, ref: 'Plant', required: true },
+    rating: { type: Number, required: true },
+    comment: String,
     createdAt: { type: Date, default: Date.now },
-    plantId: { type: Schema.Types.ObjectId, ref: 'Plant' }
 });
 
 const OrderSchema = new Schema({
@@ -49,11 +47,10 @@ const OrderSchema = new Schema({
 });
 
 const OrderItemSchema = new Schema({
-    productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
+    plantId: { type: Schema.Types.ObjectId, ref: 'Plant', required: true },
     orderId: { type: Schema.Types.ObjectId, ref: 'Order', required: true },
     quantity: { type: Number, required: true },
-    price: { type: Number, required: true },
-    plantId: { type: Schema.Types.ObjectId, ref: 'Plant' }
+    price: { type: Number, required: true }
 });
 
 const AddressSchema = new Schema({
@@ -68,10 +65,10 @@ const AddressSchema = new Schema({
 });
 
 const ViewLogSchema = new Schema({
-    productId: { type: Schema.Types.ObjectId, ref: 'Product', required: true },
+    plantId: { type: Schema.Types.ObjectId, ref: 'Plant', required: true },
     ip: { type: String, required: true },
-    viewedAt: { type: Date, default: Date.now },
-    plantId: { type: Schema.Types.ObjectId, ref: 'Plant' }
+    viewedAt: { type: Date, default: Date.now }
+    // Removed 'productId'
 });
 
 const BlogSchema = new Schema({
@@ -85,9 +82,10 @@ const PlantSchema = new Schema({
     name: { type: String, required: true },
     description: { type: String, required: true },
     price: { type: Number, required: true },
-    image: {imageUrl: { type: String },
-        key: String,        // s3 key
-        contentType: String, // content type
+    image: {
+        imageUrl: { type: String },
+        key: String,
+        contentType: String,
         imageName: String,
         size: Number,
     },
@@ -95,20 +93,6 @@ const PlantSchema = new Schema({
     discountPercentage: { type: Number, default: 0 },
     isTrending: { type: Boolean, default: false },
     isBestSeller: { type: Boolean, default: false },
-    createdAt: { type: Date, default: Date.now },
-    cartItems: [{ type: Schema.Types.ObjectId, ref: 'CartItem' }],
-    orderItems: [{ type: Schema.Types.ObjectId, ref: 'OrderItem' }],
-    reviews: [{ type: Schema.Types.ObjectId, ref: 'Review' }],
-    viewLogs: [{ type: Schema.Types.ObjectId, ref: 'ViewLog' }]
-});
-
-const ProductSchema = new Schema({
-    name: { type: String, required: true },
-    description: { type: String, required: true },
-    price: { type: Number, required: true },
-    imageUrl: { type: String, required: true },
-    categoryId: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
-    discountId: { type: Schema.Types.ObjectId, ref: 'Discount' },
     createdAt: { type: Date, default: Date.now },
     cartItems: [{ type: Schema.Types.ObjectId, ref: 'CartItem' }],
     orderItems: [{ type: Schema.Types.ObjectId, ref: 'OrderItem' }],
@@ -125,7 +109,6 @@ const CartSchema = new Schema({
 const CartItemSchema = new Schema({
     cartId: { type: Schema.Types.ObjectId, ref: 'Cart', required: true },
     plantId: { type: Schema.Types.ObjectId, ref: 'Plant' },
-    productId: { type: Schema.Types.ObjectId, ref: 'Product' },
     quantity: { type: Number, default: 1 }
 });
 
@@ -140,6 +123,5 @@ export const Address = mongoose.model('Address', AddressSchema);
 export const ViewLog = mongoose.model('ViewLog', ViewLogSchema);
 export const Blog = mongoose.model('Blog', BlogSchema);
 export const Plant = mongoose.model('Plant', PlantSchema);
-export const Product = mongoose.model('Product', ProductSchema);
 export const Cart = mongoose.model('Cart', CartSchema);
 export const CartItem = mongoose.model('CartItem', CartItemSchema);

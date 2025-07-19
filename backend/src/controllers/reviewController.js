@@ -1,26 +1,18 @@
-const prisma = require('../utils/prismaImport.js');
-const asyncHandler = require('../utils/asyncHandler');
+import {Plant, Review} from '../models/model.js'
 
-exports.addReview = asyncHandler(async (req, res) => {
-  const userId = req.user.id;
-  const { plantId, rating, comment } = req.body;
-  const review = await prisma.review.create({
-    data: { userId, plantId, rating, comment }
-  });
-  res.status(201).json(review); 
-});
+// Add a review
+export const addReview = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const { plantId, rating, comment } = req.body;
+    const review = await Review.create({ userId, plantId, rating, comment });
 
-exports.getReviewsByPlant = asyncHandler(async (req, res) => {
-  const plantId = parseInt(req.params.plantId);
-  const reviews = await prisma.review.findMany({
-    where: { plantId },
-    include: { user: { select: { name: true } } }
-  });
-  res.json(reviews);
-});
+    await Plant.findByIdAndUpdate(plantId, { $push: { reviews: review._id } });
 
-exports.deleteReview = asyncHandler(async (req, res) => {
-  const { reviewId } = req.params;
-  await prisma.review.delete({ where: { id: parseInt(reviewId) } });
-  res.json({ message: 'Review deleted' });
-});
+    res.status(201).json(review);
+  } catch (err) {
+    res.status(500).json({ message: 'Error adding review' });
+  }
+};
+
+
