@@ -32,6 +32,15 @@ export const createCategory = async (req, res) => {
   }
 };
 
-
+export const updateCategory = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const data = req.body;
+    const category = await Category.findByIdAndUpdate(id, data, { new: true });
+    res.json(category);
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
 
 
