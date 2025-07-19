@@ -1,4 +1,4 @@
-import {Order} from '../models/model.js';
+import Order from '../models/model.js';
 
 export const createOrder = async (req, res) => {
   try {
@@ -39,7 +39,20 @@ export const createOrder = async (req, res) => {
   }
 };
 
-
+export const getUserOrders = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    const orders = await Order.find({ user: userId })
+        .populate({
+          path: 'orderItems',
+          populate: [{ path: 'plant' }, { path: 'product' }]
+        })
+        .sort({ createdAt: -1 });
+    res.json(orders);
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
 
 
 
