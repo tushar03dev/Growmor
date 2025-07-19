@@ -20,7 +20,17 @@ export const getPlantsByCategory = async (req, res) => {
   }
 };
 
+// ADMIN ONLY
 
+export const createCategory = async (req, res) => {
+  try {
+    const { name, description } = req.body;
+    const category = await Category.create({ name, description });
+    res.status(201).json(category);
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
 
 
 
