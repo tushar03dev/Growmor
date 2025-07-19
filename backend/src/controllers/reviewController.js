@@ -15,4 +15,17 @@ export const addReview = async (req, res) => {
   }
 };
 
+// Get reviews by plant
+export const getReviewsByPlant = async (req, res) => {
+  try {
+    const { plantId } = req.params;
+    const reviews = await Review.find({ plantId })
+        .populate({ path: 'userId', select: 'name' });
+
+    res.json(reviews);
+  } catch (err) {
+    res.status(500).json({ message: 'Error fetching reviews' });
+  }
+};
+
 
