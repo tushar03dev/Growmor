@@ -1,5 +1,5 @@
 import Plant from '../models/model.js';
-import { uploadToS3, getObjectURL } from '../utils/s3Utils.js';
+import { uploadToS3, getObjectURL, deleteFromS3 } from '../utils/s3Utils.js';
 import fs from 'fs';
 
 // UTIL: Generates a signed S3 URL for a Plant image, if available
@@ -151,3 +151,17 @@ export const updatePlant = async (req, res) => {
   }
 };
 
+// Delete plant (optionally delete image from S3)
+export const deletePlant = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const plant = await Plant.findByIdAndDelete(id);
+    // Optionally delete S3 image
+    if (plant && plant.image && plant.image.key) {
+      try { await deleteFromS3(plant.image.key); } catch (e) {}
+    }
+    res.json({ message: 'Plant deleted successfully' });
+  } catch (err) {
+    res.status(500).json({ message: 'Error deleting plant' });
+  }
+};
