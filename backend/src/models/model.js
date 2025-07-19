@@ -85,7 +85,12 @@ const PlantSchema = new Schema({
     name: { type: String, required: true },
     description: { type: String, required: true },
     price: { type: Number, required: true },
-    imageUrl: { type: String },
+    image: {imageUrl: { type: String },
+        key: String,        // s3 key
+        contentType: String, // content type
+        imageName: String,
+        size: Number,
+    },
     categoryId: { type: Schema.Types.ObjectId, ref: 'Category', required: true },
     discountPercentage: { type: Number, default: 0 },
     isTrending: { type: Boolean, default: false },
