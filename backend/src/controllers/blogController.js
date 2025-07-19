@@ -26,3 +26,20 @@ export const getBlogById = async (req, res) => {
     res.status(500).json({ message: 'Server Error', error: error.message });
   }
 };
+
+// Create a new blog
+export const createBlog = async (req, res) => {
+  const { title, content, imageUrl } = req.body;
+
+  if (!title || !content || !imageUrl) {
+    return res.status(400).json({ message: 'Please provide title, content, and imageUrl' });
+  }
+
+  try {
+    const blog = new Blog({ title, content, imageUrl });
+    await blog.save();
+    res.status(201).json(blog);
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
