@@ -28,4 +28,20 @@ export const getReviewsByPlant = async (req, res) => {
   }
 };
 
+// Delete a review
+export const deleteReview = async (req, res) => {
+  try {
+    const { reviewId } = req.params;
+    const deletedReview = await Review.findByIdAndDelete(reviewId);
 
+    if (deletedReview) {
+      await Plant.findByIdAndUpdate(deletedReview.plantId, {
+        $pull: { reviews: reviewId }
+      });
+    }
+
+    res.json({ message: 'Review deleted' });
+  } catch (err) {
+    res.status(500).json({ message: 'Error deleting review' });
+  }
+};
