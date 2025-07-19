@@ -54,5 +54,24 @@ export const getUserOrders = async (req, res) => {
   }
 };
 
+export const getOrderById = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const order = await Order.findOne({
+      _id: id,
+      user: userId
+    }).populate({
+      path: 'orderItems',
+      populate: [{ path: 'plant' }, { path: 'product' }]
+    });
 
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' });
+    }
+    res.json(order);
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error: error.message });
+  }
+};
 
