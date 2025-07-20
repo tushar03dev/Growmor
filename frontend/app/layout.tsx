@@ -27,7 +27,3 @@ export default function RootLayout({ children }: { children: ReactNode }) {
     </html>
   )
 }
-
-export const metadata = {
-      generator: 'v0.dev'
-    };

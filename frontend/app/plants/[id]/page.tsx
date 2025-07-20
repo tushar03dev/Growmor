@@ -37,7 +37,7 @@ export default function PlantDetailPage() {
       <div className="container py-8">
         <div className="text-center">
           <h1 className="text-2xl font-bold">Product not found</h1>
-          <p className="text-muted-foreground mt-2">The product you're looking for doesn't exist.</p>
+          <p className="text-muted-foreground mt-2">The product you&#39;re looking for doesn&#39;t exist.</p>
           <Button onClick={() => router.push("/plants")} className="mt-4">
             Back to Plants
           </Button>

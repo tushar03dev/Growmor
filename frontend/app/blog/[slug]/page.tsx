@@ -29,7 +29,7 @@ export default function BlogPostPage() {
       <div className="container py-8">
         <div className="text-center">
           <h1 className="text-2xl font-bold">Post not found</h1>
-          <p className="text-muted-foreground mt-2">The blog post you're looking for doesn't exist.</p>
+          <p className="text-muted-foreground mt-2">The blog post you&#39;re looking for doesn&#39;t exist.</p>
           <Button onClick={() => router.push("/blog")} className="mt-4">
             Back to Blog
           </Button>
@@ -102,7 +102,7 @@ export default function BlogPostPage() {
           <p>
             Overwatering is one of the most common mistakes new plant parents make. Most plants prefer to dry out
             slightly between waterings. A good rule of thumb is to stick your finger about an inch into the soil - if
-            it's dry, it's time to water.
+            it&#39;s dry, it&#39;s time to water.
           </p>
 
           <h3>Creating the Right Environment</h3>

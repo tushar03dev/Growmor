@@ -229,7 +229,7 @@ export default function AdminProductsPage() {
               <Label htmlFor="category">Category</Label>
               <Select
                 value={formData.category}
-                onValueChange={(value) => setFormData((prev) => ({ ...prev, category: value }))}
+                onValueChange={(value: never) => setFormData((prev) => ({ ...prev, category: value }))}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Select category" />
@@ -291,7 +291,7 @@ export default function AdminProductsPage() {
               <Checkbox
                 id="featured"
                 checked={formData.featured}
-                onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, featured: !!checked }))}
+                onCheckedChange={(checked: never) => setFormData((prev) => ({ ...prev, featured: !!checked }))}
               />
               <Label htmlFor="featured">Featured Product</Label>
             </div>
@@ -300,7 +300,7 @@ export default function AdminProductsPage() {
               <Checkbox
                 id="sale"
                 checked={formData.sale}
-                onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, sale: !!checked }))}
+                onCheckedChange={(checked: never) => setFormData((prev) => ({ ...prev, sale: !!checked }))}
               />
               <Label htmlFor="sale">On Sale</Label>
             </div>
