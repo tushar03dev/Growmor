@@ -1,6 +1,7 @@
-//middleware/authMiddleware
-const jwt = require('jsonwebtoken');
-require('dotenv').config();
+import jwt from 'jsonwebtoken';
+import dotenv from 'dotenv';
+
+dotenv.config();
 
 const authMiddleware = (req, res, next) => {
   // Get token from headers
@@ -13,17 +14,12 @@ const authMiddleware = (req, res, next) => {
   const token = authHeader.split(' ')[1];
 
   try {
-    // Verify token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    // Attach user info to request object for further use
-    req.user = decoded;
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
     next();
-
   } catch (err) {
-    console.log(err);
+    console.error(err);
     return res.status(401).json({ message: 'Invalid or expired token' });
   }
 };
 
-module.exports = authMiddleware;
-
+export default authMiddleware;

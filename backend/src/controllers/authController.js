@@ -114,7 +114,11 @@ export const adminLogin = async (req, res) => {
         return res.status(401).json({message: 'Invalid credentials'});
     }
 
-    const token = generateToken(admin);
+    const token = jwt.sign(
+        {id: admin.id, email: admin.email, isAdmin: true},
+        process.env.JWT_SECRET,
+        {expiresIn: JWT_EXPIRES_IN}
+    )
 
     res.json({
         token,
@@ -124,32 +128,3 @@ export const adminLogin = async (req, res) => {
         }
     });
 };
-
-export const adminSignup = async (req, res) => {
-    const {email, password, adminKey} = req.body;
-
-    if (!adminKey || adminKey !== process.env.ADMIN_SECRET_KEY) {
-        return res.status(403).json({message: 'Invalid admin key'});
-    }
-
-    const existingAdmin = await Admin.findOne({email}); // if Admin is a separate model
-    if (existingAdmin) {
-        return res.status(400).json({message: 'Admin already exists'});
-    }
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const admin = new Admin({email, password: hashedPassword, isAdmin: true});
-    await admin.save();
-
-    const token = generateToken(admin);
-
-    res.status(201).json({
-        token,
-        admin: {
-            id: admin._id,
-            email: admin.email,
-            isAdmin: true
-        }
-    });
-}
