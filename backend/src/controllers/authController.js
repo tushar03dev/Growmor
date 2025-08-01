@@ -1,25 +1,24 @@
-import {Request, Response, NextFunction} from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import {User} from '../models/model.js';
 import dotenv from 'dotenv';
-import {passwordResetMail, sendOTP} from "./otpController";
+import {passwordResetMail, sendOTP} from "./otpController.js";
 import {getRedisClient} from '../config/redis.js';
 import {signUpPayload} from "../types/signUp.js";
 import {completeSignUpPayload} from "../types/completeSignup.js";
 import {signInPayload} from "../types/signIn.js";
 import {emailOnlyPayload} from "../types/passwordReset.js";
 import {changePasswordPayload} from "../types/changePassword.js";
-import zod, { ZodError } from 'zod';
+import zod from 'zod';
 
-function flattenZodError(err: ZodError) {
+function flattenZodError(err) {
     return err.flatten().fieldErrors;
 }
 
-const env = process.env.NODE_ENV;
-dotenv.config({path: `.env.${env}`});
+dotenv.config();
 
-export const signUp = async (req: Request, res: Response, next: NextFunction) => {
+export const signUp = async (req, res, next) => {
+    console.log("hiiiiiiii");
     const createPayload = req.body;
     const parsedPayload = signUpPayload.safeParse(createPayload);
 
@@ -60,7 +59,7 @@ export const signUp = async (req: Request, res: Response, next: NextFunction) =>
     }
 };
 
-export const completeSignUp = async (req: Request, res: Response, next: NextFunction) => {
+export const completeSignUp = async (req, res, next) => {
     const createPayload = req.body;
     const parsedPayload = completeSignUpPayload.safeParse(req.body);
 
@@ -83,10 +82,12 @@ export const completeSignUp = async (req: Request, res: Response, next: NextFunc
 
             const {name, password} = JSON.parse(userDataStr);
 
-            // Generate JWT token
-            const token = jwt.sign({email: createPayload.email}, process.env.JWT_SECRET as string, {expiresIn: "1d"});
+            const user = new User({name, email : createPayload.email, password});
 
-            await publishToQueue("authQueue", {name, email: createPayload.email, password});
+            await user.save();
+
+            // Generate JWT token
+            const token = jwt.sign({email: createPayload.email}, process.env.JWT_SECRET, {expiresIn: "1d"});
 
             await redisClient.del([`signup:${createPayload.email}`, `otp:${createPayload.email}`]); // Clean up Redis entry
 
@@ -101,7 +102,7 @@ export const completeSignUp = async (req: Request, res: Response, next: NextFunc
     }
 };
 
-export const signIn = async (req: Request, res: Response, next: NextFunction) => {
+export const signIn = async (req, res, next) => {
     const createPayload = req.body;
     const parsedPayload = signInPayload.safeParse(createPayload);
 
@@ -124,16 +125,15 @@ export const signIn = async (req: Request, res: Response, next: NextFunction) =>
             return;
         }
 
-        const token = jwt.sign({email: user.email}, process.env.JWT_SECRET as string, {expiresIn: '1d'});
+        const token = jwt.sign({email: user.email}, process.env.JWT_SECRET, {expiresIn: '1d'});
 
-        res.json({success: true, token, name: user.name});
-        return;
+       return res.json({success: true, token, name: user.name});
     } catch (err) {
         next(err);
     }
 };
 
-export const passwordReset = async (req: Request, res: Response, next: NextFunction) => {
+export const passwordReset = async (req, res, next) => {
     const createPayload = req.body;
     const parsedPayload = emailOnlyPayload.safeParse(createPayload);
 
@@ -161,7 +161,7 @@ export const passwordReset = async (req: Request, res: Response, next: NextFunct
     }
 }
 
-export const changePassword = async (req: Request, res: Response, next: NextFunction) => {
+export const changePassword = async (req, res, next) => {
     const createPayload = req.body;
     const parsedPayload = changePasswordPayload.safeParse(createPayload);
 
@@ -198,7 +198,7 @@ export const changePassword = async (req: Request, res: Response, next: NextFunc
     }
 }
 
-export const adminLogin = async (req, res) => {
+export const adminLogin = async (req, res, next) => {
     const {email, password} = req.body;
 
     const admin = await Admin.findOne({email});

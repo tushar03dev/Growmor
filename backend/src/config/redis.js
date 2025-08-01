@@ -1,11 +1,31 @@
-import { createClient } from 'redis';
+import {createClient} from 'redis';
+import dotenv from "dotenv";
+const env = process.env.NODE_ENV;
+dotenv.config({ path: `.env.${env}` });
 
-const redisClient = createClient({
-    url: process.env.REDIS_URL || 'redis://localhost:6379'
-});
+const REDIS_URL = process.env.REDIS_URL
 
-redisClient.on('error', (err) => console.error('Redis Client Error:', err));
+let redisClient;
 
-await redisClient.connect();
+export const connectRedis = async () => {
+    let attempts = 10;
+    while (attempts > 0) {
+        try {
+            redisClient = createClient({ url: REDIS_URL });
+            redisClient.on('error', err => console.error('Redis Client Error', err));
+            await redisClient.connect();
+            console.log('Connected to Redis');
+            return;
+        } catch (err) {
+            console.log(`Redis connection failed. Retrying in 3s... (${11 - attempts}/10)`);
+            attempts--;
+            await new Promise(res => setTimeout(res, 3000));
+        }
+    }
+    throw new Error('Failed to connect to Redis after 10 attempts');
+};
 
-export default redisClient;
+export const getRedisClient = () => {
+    if (!redisClient) throw new Error('Redis client is not connected yet!');
+    return redisClient;
+};
