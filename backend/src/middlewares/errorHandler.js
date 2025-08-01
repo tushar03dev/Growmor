@@ -1,6 +1,4 @@
-// errorHandler.js - placeholder
-
-function errorHandler(err, req, res, next) {
+const errorHandler = (err, req, res, next)  => {
   console.error(err);
   const status = err.status || 500;
   res.status(status).json({
@@ -9,4 +7,4 @@ function errorHandler(err, req, res, next) {
   });
 }
 
-module.exports = errorHandler;
+export default errorHandler;
