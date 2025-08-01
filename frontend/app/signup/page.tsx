@@ -53,6 +53,9 @@ export default function SignupPage() {
 
   const handleOtpVerify = async () => {
     const otpToken = JSON.parse(localStorage.getItem("otpToken") || "")
+    if (!otpToken) {
+      console.error("Could not find otp token")
+    }
     const verified = await verifyOtp(otpToken, otp)
     if (verified) {
       alert("Account created successfully!")

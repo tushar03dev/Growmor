@@ -1,105 +1,202 @@
+import {Request, Response, NextFunction} from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import {User} from '../models/model.js';
 import dotenv from 'dotenv';
-import redisClient from '../config/redis.js';
-import {Admin, User} from "../models/model.js";
-import {sendOTP, verifyOTP} from "./otpController.js";
+import {passwordResetMail, sendOTP} from "./otpController";
+import {getRedisClient} from '../config/redis.js';
+import {signUpPayload} from "../types/signUp.js";
+import {completeSignUpPayload} from "../types/completeSignup.js";
+import {signInPayload} from "../types/signIn.js";
+import {emailOnlyPayload} from "../types/passwordReset.js";
+import {changePasswordPayload} from "../types/changePassword.js";
+import zod, { ZodError } from 'zod';
 
-dotenv.config();
+function flattenZodError(err: ZodError) {
+    return err.flatten().fieldErrors;
+}
 
-const JWT_EXPIRES_IN = '1d';
+const env = process.env.NODE_ENV;
+dotenv.config({path: `.env.${env}`});
 
-const generateToken = (user) => {
-    return jwt.sign(
-        {id: user.id, email: user.email, isAdmin: user.isAdmin},
-        process.env.JWT_SECRET,
-        {expiresIn: JWT_EXPIRES_IN}
-    );
-};
+export const signUp = async (req: Request, res: Response, next: NextFunction) => {
+    const createPayload = req.body;
+    const parsedPayload = signUpPayload.safeParse(createPayload);
 
-export const signUp = async (req, res) => {
-    const {name, email, password} = req.body;
-
-    if (!name || !email || !password) {
-        return res.status(400).send('All fields are required.');
+    if(!parsedPayload.success) {
+        const errors = flattenZodError(parsedPayload.error);
+        console.log(errors);
+        res.json({ message: "Invalid input", errors });
+        return;
     }
 
     try {
-        const existingUser = await User.findOne({email});
+        const existingUser = await User.findOne({email: createPayload.email});
         if (existingUser) {
-            return res.status(400).send('User already exists. Please sign in.');
+            console.debug('User already exists', existingUser);
+            res.status(400).json({ errors: 'USER_ALREADY_EXISTS' });
+            return
         }
 
-        const otpToken = await sendOTP(email);
-        const tempUserData = JSON.stringify({name, email, password});
+        // Send OTP
+        const otp = await sendOTP(createPayload.email);
+        if (!otp) {
+            res.status(400).json({errors : 'Otp Not Found'});
+            return;
+        }
 
-        await redisClient.setEx(`signup:${otpToken}`, 300, tempUserData);
+        // Store user temporarily in Redis using the OTP token as key
+        const tempUserData = JSON.stringify({name: createPayload.name, password: createPayload.password});
+        const redisClient = getRedisClient();
+        await redisClient.setEx(`otp:${createPayload.email}`, 300, otp);
+        await redisClient.setEx(`signup:${createPayload.email}`, 300, tempUserData); // Expires in 5 minutes
 
-        return res.status(200).json({otpToken, message: 'OTP sent to your email. Please verify.'});
+        return res.status(200).json({
+            success: true,
+            message: 'OTP sent to your email. Please enter the OTP to complete sign-up.'
+        });
     } catch (err) {
-        console.error('Sign-up error:', err);
-        res.status(500).send('Server error during sign-up.');
+        next(err);
     }
 };
 
-// OTP verification
-export const completeSignUp = async (req, res) => {
-    const {otpToken, otp} = req.body;
+export const completeSignUp = async (req: Request, res: Response, next: NextFunction) => {
+    const createPayload = req.body;
+    const parsedPayload = completeSignUpPayload.safeParse(req.body);
 
-    if (!otpToken || !otp) {
-        return res.status(400).json({message: 'Token and OTP are required.'});
+    if(!parsedPayload.success) {
+        const errorTree = zod.treeifyError(parsedPayload.error);
+        res.status(401).json({ message: "Invalid input", errors: errorTree });
+        return;
     }
 
     try {
+        const redisClient = getRedisClient();
+        const savedOtp = await redisClient.get(`otp:${createPayload.email}`);
 
-        const otpVerificationResult = await verifyOTP(otpToken, otp);
+        if (savedOtp && createPayload.otp === savedOtp) {
 
-        if (!otpVerificationResult.success) {
-
-            const userDataStr = await redisClient.get(`signup:${otpToken}`);
+            const userDataStr = await redisClient.get(`signup:${createPayload.email}`);
             if (!userDataStr) {
-                return res.status(400).json({message: 'Token expired or not found.'});
+                return res.status(400).json({message: 'No user data found or token expired.'});
             }
 
-            const {name, email, password} = JSON.parse(userDataStr);
-            const hashedPassword = await bcrypt.hash(password, 10);
+            const {name, password} = JSON.parse(userDataStr);
 
-            const user = new User({name, email, password: hashedPassword, isAdmin: false});
-            await user.save();
+            // Generate JWT token
+            const token = jwt.sign({email: createPayload.email}, process.env.JWT_SECRET as string, {expiresIn: "1d"});
 
-            await redisClient.del(`signup:${otpToken}`);
+            await publishToQueue("authQueue", {name, email: createPayload.email, password});
 
-            const token = generateToken(user);
-            res.status(201).json({token, message: 'User signed up successfully.'});
+            await redisClient.del([`signup:${createPayload.email}`, `otp:${createPayload.email}`]); // Clean up Redis entry
+
+            // Respond with token and success message
+            res.status(201).json({success: true, token, message: 'User signed up successfully.'});
         } else {
             // OTP verification failed
-            res.status(400).json({message: otpVerificationResult.message});
+            res.status(400).json({message: 'Invalid or expired otp'});
         }
     } catch (err) {
-        console.error('Sign-up error:', err);
+        next(err);
     }
 };
 
-export const signIn = async (req, res) => {
-    const {email, password} = req.body;
+export const signIn = async (req: Request, res: Response, next: NextFunction) => {
+    const createPayload = req.body;
+    const parsedPayload = signInPayload.safeParse(createPayload);
+
+    if(!parsedPayload.success) {
+        const errorTree = zod.treeifyError(parsedPayload.error);
+        res.status(401).json({ message: "Invalid input", errors: errorTree });
+        return;
+    }
+
     try {
-        const user = await User.findOne({email});
+        const user = await User.findOne({email: createPayload.email});
         if (!user) {
-            return res.status(400).send('User not found.');
+            res.status(400).send('User does not exist.');
+            return;
         }
 
-        const isMatch = await bcrypt.compare(password, user.password);
+        const isMatch = await bcrypt.compare(createPayload.password, user.password);
         if (!isMatch) {
-            return res.status(400).send('Invalid credentials.');
+            res.status(400).send('Invalid password');
+            return;
         }
 
-        const token = generateToken(user);
-        res.json({token, name: user.name});
+        const token = jwt.sign({email: user.email}, process.env.JWT_SECRET as string, {expiresIn: '1d'});
+
+        res.json({success: true, token, name: user.name});
+        return;
     } catch (err) {
-        console.error('Sign-in error:', err);
-        res.status(500).send('Server error during sign-in.');
+        next(err);
     }
 };
+
+export const passwordReset = async (req: Request, res: Response, next: NextFunction) => {
+    const createPayload = req.body;
+    const parsedPayload = emailOnlyPayload.safeParse(createPayload);
+
+    if(!parsedPayload.success) {
+        const errorTree = zod.treeifyError(parsedPayload.error);
+        res.status(401).json({ message: "Invalid input", errors: errorTree });
+        return;
+    }
+
+    try {
+
+        const user = await User.find({email: createPayload.email});
+        if (!user) {
+            res.status(400).json({msg: 'User does not exist.'});
+        }
+
+        const otp = await passwordResetMail(createPayload.email);
+        const redisClient = getRedisClient();
+        await redisClient.setEx(`otp:${createPayload.email}`, 300, otp);
+
+        res.status(201).json({success: true, msg: 'Otp verification mail sent.'});
+
+    } catch (err) {
+        next(err);
+    }
+}
+
+export const changePassword = async (req: Request, res: Response, next: NextFunction) => {
+    const createPayload = req.body;
+    const parsedPayload = changePasswordPayload.safeParse(createPayload);
+
+    if(!parsedPayload.success) {
+        const errorTree = zod.treeifyError(parsedPayload.error);
+        res.status(401).json({ message: "Invalid input", errors: errorTree });
+        return;
+    }
+
+    try {
+        const redisClient = getRedisClient();
+        const savedOtp = await redisClient.get(`otp:${createPayload.email}`);
+
+        if (savedOtp && createPayload.otp === savedOtp) {
+            const user = await User.find({email: createPayload.email});
+            if (!user) {
+                res.status(400).json({msg: 'User does not exist.'});
+            }
+
+            const hashedPassword = await bcrypt.hash(createPayload.password, 10);
+            if (!hashedPassword) {
+                res.status(400).send('Invalid password');
+            }
+
+            await User.updateOne({email: createPayload.email}, {password: hashedPassword});
+            await redisClient.del(`otp:${createPayload.email}`);
+
+            res.status(200).json({success: true, msg: 'Password updated'});
+        } else {
+            res.status(400).send('Invalid or Expired OTP');
+        }
+    } catch (err) {
+        next(err);
+    }
+}
 
 export const adminLogin = async (req, res) => {
     const {email, password} = req.body;

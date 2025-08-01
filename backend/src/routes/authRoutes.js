@@ -4,11 +4,11 @@ import {Router} from "express";
 const router = Router();
 
 // User sign-up
-router.post('/sign-up', (req ,res) => {
+router.post('/signup', (req ,res) => {
     signUp(req, res);
 });
 
-router.post('/sign-in', (req, res) => {
+router.post('/login', (req, res) => {
     signIn(req, res);
 });
 

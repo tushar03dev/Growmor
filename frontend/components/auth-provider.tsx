@@ -5,13 +5,13 @@ import { useRouter } from "next/navigation"
 import axios from "axios";
 
 type User = {
-  id: string
+  id?: string
   name: string
   email: string
-  role: "user" | "admin"
+  role?: "user" | "admin"
 }
 
-let tempUser:any;
+let tempUser:User;
 
 type AuthContextType = {
   user: User | null
@@ -86,7 +86,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         alert("Otp sent successfully");
 
         localStorage.setItem("otpToken", JSON.stringify(response.data.token));
-
         return true
       } else{
         console.error('Otp not sent. Please try again.');
@@ -100,7 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const verifyOtp = async (otpToken: string, otp: string): Promise<boolean> => {
     try {
-      const response = await axios.post(`${process.env.NEXT_API_BASE_URL}/auth/verify`, {otpToken, otp });
+      const response = await axios.post(`${process.env.NEXT_API_URL}/auth/verify`, {otpToken, otp });
 
       if (response.data) {
         localStorage.setItem('token', JSON.stringify(response.data.token));
