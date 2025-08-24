@@ -81,7 +81,9 @@ export const completeSignUp = async (req, res, next) => {
 
             const {name, password} = JSON.parse(userDataStr);
 
-            const user = new User({name, email : createPayload.email, password});
+            const hashedPassword = await bcrypt.hash(password,10);
+
+            const user = new User({name, email : createPayload.email, password: hashedPassword});
 
             await user.save();
 

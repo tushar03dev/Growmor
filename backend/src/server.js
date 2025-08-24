@@ -37,6 +37,7 @@ connectDB().then(
 // Routes
 app.use("/otp", otpRoutes);
 
+
 // Start server
 const PORT = process.env.PORT;
 app.listen(PORT, () => {
