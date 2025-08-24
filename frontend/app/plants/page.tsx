@@ -57,16 +57,38 @@ export default function PlantsPage() {
     async function fetchCategories() {
       try {
         const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/category`);
+        if (!res.ok) throw new Error("Failed to fetch categories");
+
         const data: Category[] = await res.json();
-        const mapped = data.map((cat: Category) => ({
-          value: cat.name, // use category name
-          label: cat.name,
-        }));
-        setCategories([{ value: "all", label: "All Categories" }, ...mapped]);
+
+        if (data.length > 0) {
+          const mapped = data.map((cat: Category) => ({
+            value: cat.name,
+            label: cat.name,
+          }));
+          setCategories([{ value: "all", label: "All Categories" }, ...mapped]);
+        } else {
+          // ✅ fallback if backend sends empty array
+          setCategories([
+            { value: "all", label: "All Categories" },
+            { value: "indoor plants", label: "Indoor Plants" },
+            { value: "outdoor plants", label: "Outdoor Plants" },
+            { value: "succulents", label: "Succulents" },
+          ]);
+        }
       } catch (err) {
         console.error("Failed to fetch categories:", err);
+
+        // ✅ fallback if fetch fails
+        setCategories([
+          { value: "all", label: "All Categories" },
+          { value: "indoor plants", label: "Indoor Plants" },
+          { value: "outdoor plants", label: "Outdoor Plants" },
+          { value: "succulents", label: "Succulents" },
+        ]);
       }
     }
+
     fetchCategories();
   }, []);
 
