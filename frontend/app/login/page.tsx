@@ -23,7 +23,7 @@ export default function LoginPage() {
   const [isAdminMode, setIsAdminMode] = useState(false)
   const [adminEmail, setAdminEmail] = useState("")
   const [adminPassword, setAdminPassword] = useState("")
-  const { login,adminLogin } = useAuth()
+  const { login, adminLogin } = useAuth()
   const router = useRouter()
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -51,13 +51,10 @@ export default function LoginPage() {
     setError("")
 
     try {
-      // Check admin credentials
       const success = await adminLogin(adminEmail, adminPassword)
       if (success) {
-        // Store admin session
         localStorage.setItem("adminAuth", "true")
         router.push("/admin/dashboard")
-
       } else {
         setError("Invalid admin credentials")
       }
@@ -73,10 +70,7 @@ export default function LoginPage() {
     setError("")
 
     try {
-      // In a real app, this would redirect to the OAuth provider
       await new Promise((resolve) => setTimeout(resolve, 1000))
-
-      // Simulate successful login
       await login(`${provider}@example.com`, "password")
       router.push("/")
     } catch (err) {
@@ -96,7 +90,6 @@ export default function LoginPage() {
         </Link>
 
         {isAdminMode ? (
-            // Admin Login Form
             <Card className="w-full max-w-sm">
               <CardHeader className="space-y-1">
                 <div className="flex items-center space-x-2">
@@ -139,8 +132,7 @@ export default function LoginPage() {
               </CardContent>
             </Card>
         ) : (
-            // Regular Login Form
-            <Card className="w-full max-w-md">
+            <Card className="w-full max-w-sm">
               <CardHeader>
                 <CardTitle className="text-2xl">Login</CardTitle>
                 <CardDescription>Enter your email and password to access your account</CardDescription>

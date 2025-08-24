@@ -9,9 +9,10 @@ import bodyParser from "body-parser";
 import plantRoutes from "./routes/PlantRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 import blogRoutes from "./routes/blogRoutes.js";
+
+
 // Load environment variables
 const env = process.env.NODE_ENV;
-console.log(env);
 dotenv.config({ path: `.env.${env}` });
 
 // Initialize Express app
@@ -46,7 +47,6 @@ app.use("/blogs", blogRoutes);
 
 // Start server
 const PORT = process.env.PORT;
-console.log(PORT);
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
