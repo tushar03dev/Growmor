@@ -1,14 +1,15 @@
-const express = require("express");
+import express from "express";
+
+import blogController from "../controllers/blogController.js";
+import authMiddleware from "../middlewares/authMiddleware.js";
+import isAdmin from "../middlewares/isAdmin.js";
+
 const router = express.Router();
 
-const blogController = require("../controllers/blogController.js");
-const authMiddleware = require("../middlewares/authMiddleware.js");
-const isAdmin = require("../middlewares/isAdmin.js");
+router.get("/", blogController.getAllBlogs);
+router.get("/:id", blogController.getBlogById);
+router.post("/", blogController.createBlog); // admin only
+router.put("/:id", authMiddleware, isAdmin, blogController.updateBlog); // admin only
+router.delete("/:id", authMiddleware, isAdmin, blogController.deleteBlog); // admin only
 
-router.get("/blogs", blogController.getAllBlogs);
-router.get("/blogs/:id", blogController.getBlogById);
-router.post("/blogs", authMiddleware, isAdmin, blogController.createBlog); // admin only
-router.put("/blogs/:id", authMiddleware, isAdmin, blogController.updateBlog); // admin only
-router.delete("/blogs/:id", authMiddleware, isAdmin, blogController.deleteBlog); // admin only
-
-module.exports = router;
+export default router;

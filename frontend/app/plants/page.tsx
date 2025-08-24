@@ -31,20 +31,19 @@ export default function PlantsPage() {
   useEffect(() => {
     async function fetchProducts() {
       try {
-        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/plants/`); // if external: use full URL
-        const data = await res.json();
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/plants/`);
+        const data: Product[] = await res.json();
         setProducts(data);
 
-        // Category param from URL
+        // Apply category filter from URL after products fetched
         const categoryParam = searchParams.get("category");
         if (categoryParam) {
-          setSelectedCategory(categoryParam);
+          setSelectedCategory(categoryParam.toLowerCase());
         }
       } catch (err) {
         console.error("Failed to fetch products:", err);
       }
     }
-
     fetchProducts();
   }, [searchParams]);
 
@@ -85,8 +84,12 @@ export default function PlantsPage() {
     }
 
     // Category filter
+    // Category filter
     if (selectedCategory !== "all") {
-      filtered = filtered.filter((p) => p.categoryId.name === selectedCategory);
+      filtered = filtered.filter(
+        (p) =>
+          p.categoryId.name.toLowerCase() === selectedCategory.toLowerCase()
+      );
     }
 
     // Price filter

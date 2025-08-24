@@ -4,14 +4,13 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { ProductCard, type Product } from "@/components/product-card";
 import { Button } from "@/components/ui/button";
-import { dummyProducts } from "@/lib/dummy-data";
 
 interface FeaturedProductsProps {
   title?: string;
   subtitle?: string;
   limit?: number;
   showMoreLink?: boolean;
-  mode?: "featured" | "sale";
+  mode?: "featured" | "sale" | "trending";
 }
 
 export function FeaturedProducts({
@@ -19,20 +18,43 @@ export function FeaturedProducts({
   subtitle = "Our selection of premium plants for your home and garden",
   limit = 4,
   showMoreLink = true,
-  mode = "featured",
+  mode = "trending", // default to trending
 }: FeaturedProductsProps) {
   const [products, setProducts] = useState<Product[]>([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    let filteredProducts = dummyProducts;
+    const fetchProducts = async () => {
+      try {
+        setLoading(true);
 
-    if (mode === "featured") {
-      filteredProducts = dummyProducts.filter((p) => p.featured);
-    } else if (mode === "sale") {
-      filteredProducts = dummyProducts.filter((p) => p.sale);
-    }
+        let url = "";
+        if (mode === "trending") {
+          url = `${process.env.NEXT_PUBLIC_API_URL}/plants/trending`;
+        } else if (mode === "featured") {
+          url = `${process.env.NEXT_PUBLIC_API_URL}/plants/trending`;
+        } else if (mode === "sale") {
+          url = `${process.env.NEXT_PUBLIC_API_URL}/plants/trending`;
+        }
 
-    setProducts(filteredProducts.slice(0, limit));
+        if (!url) {
+          console.error("No API URL found for mode:", mode);
+          return;
+        }
+
+        const res = await fetch(url, { cache: "no-store" });
+        if (!res.ok) throw new Error("Failed to fetch products");
+
+        const data: Product[] = await res.json(); // use response directly
+        setProducts(data.slice(0, limit));
+      } catch (error) {
+        console.error("Error fetching products:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchProducts();
   }, [mode, limit]);
 
   return (
@@ -43,11 +65,15 @@ export function FeaturedProducts({
           <p className="text-muted-foreground">{subtitle}</p>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {products.map((product) => (
-            <ProductCard key={product._id} product={product} />
-          ))}
-        </div>
+        {loading ? (
+          <p className="text-center">Loading...</p>
+        ) : (
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+            {products.map((product) => (
+              <ProductCard key={product._id} product={product} />
+            ))}
+          </div>
+        )}
 
         {showMoreLink && (
           <div className="mt-10 text-center">
