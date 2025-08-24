@@ -1,13 +1,16 @@
 "use client"
 
 import { useState } from "react"
-import { Search, UserIcon, Mail, Phone, Calendar, Edit, Trash2, UserPlus, Shield, ShieldCheck } from "lucide-react"
+import { Search, UserPlus, Edit, Trash2, Shield, ShieldOff, Mail, Phone, Calendar, Activity } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Switch } from "@/components/ui/switch"
 import {
     Dialog,
     DialogContent,
@@ -16,279 +19,393 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 
-type AdminUser = {
+type User = {
     id: string
     name: string
     email: string
-    phone: string
-    role: "user" | "admin" | "moderator"
+    role: "user" | "admin"
     status: "active" | "inactive" | "suspended"
-    joinDate: string
+    avatar?: string
+    phone?: string
+    registrationDate: string
     lastLogin: string
     totalOrders: number
     totalSpent: number
-    address: string
-    avatar?: string
+    emailVerified: boolean
+    phoneVerified: boolean
+    address?: {
+        street: string
+        city: string
+        state: string
+        zipCode: string
+        country: string
+    }
+    preferences: {
+        newsletter: boolean
+        smsNotifications: boolean
+        emailNotifications: boolean
+    }
+    activityLog: Array<{
+        date: string
+        action: string
+        details: string
+        ipAddress?: string
+    }>
 }
 
-const dummyUsers: AdminUser[] = [
+const dummyUsers: User[] = [
     {
         id: "1",
         name: "John Doe",
-        email: "john@example.com",
-        phone: "+1234567890",
+        email: "john.doe@example.com",
         role: "user",
         status: "active",
-        joinDate: "2024-01-15",
-        lastLogin: "2024-01-20",
-        totalOrders: 5,
-        totalSpent: 299.95,
-        address: "123 Main St, City, State 12345",
+        avatar: "/placeholder.svg?height=40&width=40",
+        phone: "+1 (555) 123-4567",
+        registrationDate: "2024-01-15",
+        lastLogin: "2024-01-25",
+        totalOrders: 12,
+        totalSpent: 456.78,
+        emailVerified: true,
+        phoneVerified: true,
+        address: {
+            street: "123 Main St",
+            city: "New York",
+            state: "NY",
+            zipCode: "10001",
+            country: "USA",
+        },
+        preferences: {
+            newsletter: true,
+            smsNotifications: false,
+            emailNotifications: true,
+        },
+        activityLog: [
+            {
+                date: "2024-01-25",
+                action: "Login",
+                details: "User logged in successfully",
+                ipAddress: "192.168.1.1",
+            },
+            {
+                date: "2024-01-24",
+                action: "Order Placed",
+                details: "Order #ORD-2024-001 placed",
+            },
+        ],
     },
     {
         id: "2",
         name: "Jane Smith",
-        email: "jane@example.com",
-        phone: "+1234567891",
+        email: "jane.smith@example.com",
         role: "admin",
         status: "active",
-        joinDate: "2023-12-01",
-        lastLogin: "2024-01-21",
-        totalOrders: 12,
-        totalSpent: 899.5,
-        address: "456 Oak Ave, City, State 12345",
+        avatar: "/placeholder.svg?height=40&width=40",
+        phone: "+1 (555) 987-6543",
+        registrationDate: "2023-12-01",
+        lastLogin: "2024-01-25",
+        totalOrders: 5,
+        totalSpent: 234.56,
+        emailVerified: true,
+        phoneVerified: false,
+        preferences: {
+            newsletter: true,
+            smsNotifications: true,
+            emailNotifications: true,
+        },
+        activityLog: [
+            {
+                date: "2024-01-25",
+                action: "Admin Login",
+                details: "Admin panel accessed",
+                ipAddress: "192.168.1.2",
+            },
+        ],
     },
     {
         id: "3",
         name: "Bob Johnson",
-        email: "bob@example.com",
-        phone: "+1234567892",
+        email: "bob.johnson@example.com",
+        role: "user",
+        status: "suspended",
+        phone: "+1 (555) 456-7890",
+        registrationDate: "2024-01-10",
+        lastLogin: "2024-01-20",
+        totalOrders: 3,
+        totalSpent: 89.99,
+        emailVerified: false,
+        phoneVerified: false,
+        preferences: {
+            newsletter: false,
+            smsNotifications: false,
+            emailNotifications: true,
+        },
+        activityLog: [
+            {
+                date: "2024-01-22",
+                action: "Account Suspended",
+                details: "Account suspended due to policy violation",
+            },
+        ],
+    },
+    {
+        id: "4",
+        name: "Alice Wilson",
+        email: "alice.wilson@example.com",
         role: "user",
         status: "inactive",
-        joinDate: "2024-01-10",
-        lastLogin: "2024-01-18",
-        totalOrders: 2,
-        totalSpent: 149.98,
-        address: "789 Pine St, City, State 12345",
+        registrationDate: "2023-11-15",
+        lastLogin: "2023-12-01",
+        totalOrders: 0,
+        totalSpent: 0,
+        emailVerified: true,
+        phoneVerified: false,
+        preferences: {
+            newsletter: true,
+            smsNotifications: false,
+            emailNotifications: false,
+        },
+        activityLog: [
+            {
+                date: "2023-12-01",
+                action: "Last Login",
+                details: "User last seen",
+            },
+        ],
     },
 ]
 
-export default function UsersPage() {
-    const [users, setUsers] = useState<AdminUser[]>(dummyUsers)
+export default function UsersManagementPage() {
+    const [users, setUsers] = useState<User[]>(dummyUsers)
     const [searchTerm, setSearchTerm] = useState("")
-    const [roleFilter, setRoleFilter] = useState<string>("all")
-    const [statusFilter, setStatusFilter] = useState<string>("all")
-    const [isDialogOpen, setIsDialogOpen] = useState(false)
-    const [editingUser, setEditingUser] = useState<AdminUser | null>(null)
+    const [filterRole, setFilterRole] = useState("all")
+    const [filterStatus, setFilterStatus] = useState("all")
+    const [selectedUser, setSelectedUser] = useState<User | null>(null)
+    const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+    const [isAddDialogOpen, setIsAddDialogOpen] = useState(false)
+    const [isViewDialogOpen, setIsViewDialogOpen] = useState(false)
+
     const [formData, setFormData] = useState({
         name: "",
         email: "",
         phone: "",
-        role: "user" as AdminUser["role"],
-        status: "active" as AdminUser["status"],
-        address: "",
+        role: "user" as "user" | "admin",
+        status: "active" as "active" | "inactive" | "suspended",
+        emailVerified: false,
+        phoneVerified: false,
+        newsletter: true,
+        smsNotifications: false,
+        emailNotifications: true,
     })
 
     const filteredUsers = users.filter((user) => {
         const matchesSearch =
             user.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
             user.email.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            user.phone.includes(searchTerm)
+            user.phone?.toLowerCase().includes(searchTerm.toLowerCase())
 
-        const matchesRole = roleFilter === "all" || user.role === roleFilter
-        const matchesStatus = statusFilter === "all" || user.status === statusFilter
+        const matchesRole = filterRole === "all" || user.role === filterRole
+        const matchesStatus = filterStatus === "all" || user.status === filterStatus
 
         return matchesSearch && matchesRole && matchesStatus
     })
 
-    const handleEditUser = (user: AdminUser) => {
-        setEditingUser(user)
-        setFormData({
-            name: user.name,
-            email: user.email,
-            phone: user.phone,
-            role: user.role,
-            status: user.status,
-            address: user.address,
-        })
-        setIsDialogOpen(true)
-    }
-
-    const handleAddUser = () => {
-        setEditingUser(null)
+    const resetForm = () => {
         setFormData({
             name: "",
             email: "",
             phone: "",
             role: "user",
             status: "active",
-            address: "",
+            emailVerified: false,
+            phoneVerified: false,
+            newsletter: true,
+            smsNotifications: false,
+            emailNotifications: true,
         })
-        setIsDialogOpen(true)
+    }
+
+    const handleAddUser = () => {
+        resetForm()
+        setIsAddDialogOpen(true)
+    }
+
+    const handleEditUser = (user: User) => {
+        setSelectedUser(user)
+        setFormData({
+            name: user.name,
+            email: user.email,
+            phone: user.phone || "",
+            role: user.role,
+            status: user.status,
+            emailVerified: user.emailVerified,
+            phoneVerified: user.phoneVerified,
+            newsletter: user.preferences.newsletter,
+            smsNotifications: user.preferences.smsNotifications,
+            emailNotifications: user.preferences.emailNotifications,
+        })
+        setIsEditDialogOpen(true)
+    }
+
+    const handleViewUser = (user: User) => {
+        setSelectedUser(user)
+        setIsViewDialogOpen(true)
     }
 
     const handleSaveUser = () => {
-        const userData: AdminUser = {
-            id: editingUser?.id || Date.now().toString(),
+        const userData: User = {
+            id: selectedUser?.id || Date.now().toString(),
             name: formData.name,
             email: formData.email,
             phone: formData.phone,
             role: formData.role,
             status: formData.status,
-            address: formData.address,
-            joinDate: editingUser?.joinDate || new Date().toISOString().split("T")[0],
-            lastLogin: editingUser?.lastLogin || new Date().toISOString().split("T")[0],
-            totalOrders: editingUser?.totalOrders || 0,
-            totalSpent: editingUser?.totalSpent || 0,
+            registrationDate: selectedUser?.registrationDate || new Date().toISOString().split("T")[0],
+            lastLogin: selectedUser?.lastLogin || "Never",
+            totalOrders: selectedUser?.totalOrders || 0,
+            totalSpent: selectedUser?.totalSpent || 0,
+            emailVerified: formData.emailVerified,
+            phoneVerified: formData.phoneVerified,
+            address: selectedUser?.address,
+            preferences: {
+                newsletter: formData.newsletter,
+                smsNotifications: formData.smsNotifications,
+                emailNotifications: formData.emailNotifications,
+            },
+            activityLog: selectedUser?.activityLog || [
+                {
+                    date: new Date().toISOString().split("T")[0],
+                    action: "Account Created",
+                    details: "User account created by admin",
+                },
+            ],
         }
 
-        if (editingUser) {
-            setUsers((prev) => prev.map((user) => (user.id === editingUser.id ? userData : user)))
+        if (selectedUser) {
+            setUsers((prev) => prev.map((user) => (user.id === selectedUser.id ? userData : user)))
+            setIsEditDialogOpen(false)
         } else {
             setUsers((prev) => [...prev, userData])
+            setIsAddDialogOpen(false)
         }
 
-        setIsDialogOpen(false)
+        resetForm()
+        setSelectedUser(null)
     }
 
     const handleDeleteUser = (userId: string) => {
         const user = users.find((u) => u.id === userId)
-        if (confirm(`Are you sure you want to delete user "${user?.name}"? This action cannot be undone.`)) {
+        if (user && confirm(`Are you sure you want to delete ${user.name}? This action cannot be undone.`)) {
             setUsers((prev) => prev.filter((user) => user.id !== userId))
         }
     }
 
-    const userStats = {
-        totalUsers: users.length,
-        activeUsers: users.filter((user) => user.status === "active").length,
-        adminUsers: users.filter((user) => user.role === "admin").length,
-        totalRevenue: users.reduce((sum, user) => sum + user.totalSpent, 0),
-    }
-
-    const getRoleColor = (role: string) => {
-        switch (role) {
-            case "admin":
-                return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
-            case "moderator":
-                return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-300"
-            case "user":
-                return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-            default:
-                return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300"
-        }
+    const handleStatusChange = (userId: string, newStatus: "active" | "inactive" | "suspended") => {
+        setUsers((prev) =>
+            prev.map((user) =>
+                user.id === userId
+                    ? {
+                        ...user,
+                        status: newStatus,
+                        activityLog: [
+                            ...user.activityLog,
+                            {
+                                date: new Date().toISOString().split("T")[0],
+                                action: "Status Changed",
+                                details: `Account status changed to ${newStatus}`,
+                            },
+                        ],
+                    }
+                    : user,
+            ),
+        )
     }
 
     const getStatusColor = (status: string) => {
         switch (status) {
             case "active":
-                return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
+                return "default"
             case "inactive":
-                return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
+                return "secondary"
             case "suspended":
-                return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
+                return "destructive"
             default:
-                return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300"
+                return "outline"
         }
     }
 
-    const getRoleIcon = (role: string) => {
-        switch (role) {
-            case "admin":
-                return ShieldCheck
-            case "moderator":
-                return Shield
-            case "user":
-                return UserIcon
-            default:
-                return UserIcon
-        }
+    const getRoleColor = (role: string) => {
+        return role === "admin" ? "default" : "outline"
     }
 
-    return (
-        <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <div>
-                    <h2 className="text-3xl font-bold tracking-tight">User Management</h2>
-                    <p className="text-muted-foreground">Manage users, roles, and permissions</p>
-                </div>
-                <Button onClick={handleAddUser}>
-                    <UserPlus className="mr-2 h-4 w-4" />
-                    Add User
-                </Button>
-            </div>
+    const activeUsers = users.filter((user) => user.status === "active").length
+    const totalRevenue = users.reduce((sum, user) => sum + user.totalSpent, 0)
+    const totalOrders = users.reduce((sum, user) => sum + user.totalOrders, 0)
 
-            {/* User Stats */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Users</CardTitle>
-                        <UserIcon className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{userStats.totalUsers}</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Active Users</CardTitle>
-                        <UserIcon className="h-4 w-4 text-green-600" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{userStats.activeUsers}</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Admin Users</CardTitle>
-                        <ShieldCheck className="h-4 w-4 text-red-600" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{userStats.adminUsers}</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
-                        <Calendar className="h-4 w-4 text-blue-600" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">${userStats.totalRevenue.toFixed(2)}</div>
-                    </CardContent>
-                </Card>
-            </div>
-
-            {/* Filters */}
-            <div className="flex items-center space-x-2">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+    const UserForm = () => (
+        <div className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="name">Full Name</Label>
                     <Input
-                        placeholder="Search by name, email, or phone..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10"
+                        id="name"
+                        value={formData.name}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+                        required
                     />
                 </div>
-                <Select value={roleFilter} onValueChange={setRoleFilter}>
-                    <SelectTrigger className="w-[150px]">
-                        <SelectValue placeholder="Filter by role" />
+                <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                        id="email"
+                        type="email"
+                        value={formData.email}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
+                        required
+                    />
+                </div>
+            </div>
+
+            <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                    <Label htmlFor="phone">Phone</Label>
+                    <Input
+                        id="phone"
+                        value={formData.phone}
+                        onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
+                    />
+                </div>
+                <div className="space-y-2">
+                    <Label htmlFor="role">Role</Label>
+                    <Select
+                        value={formData.role}
+                        onValueChange={(value: "user" | "admin") => setFormData((prev) => ({ ...prev, role: value }))}
+                    >
+                        <SelectTrigger>
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            <SelectItem value="user">User</SelectItem>
+                            <SelectItem value="admin">Admin</SelectItem>
+                        </SelectContent>
+                    </Select>
+                </div>
+            </div>
+
+            <div className="space-y-2">
+                <Label htmlFor="status">Account Status</Label>
+                <Select
+                    value={formData.status}
+                    onValueChange={(value: "active" | "inactive" | "suspended") =>
+                        setFormData((prev) => ({ ...prev, status: value }))
+                    }
+                >
+                    <SelectTrigger>
+                        <SelectValue />
                     </SelectTrigger>
                     <SelectContent>
-                        <SelectItem value="all">All Roles</SelectItem>
-                        <SelectItem value="user">User</SelectItem>
-                        <SelectItem value="moderator">Moderator</SelectItem>
-                        <SelectItem value="admin">Admin</SelectItem>
-                    </SelectContent>
-                </Select>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-[150px]">
-                        <SelectValue placeholder="Filter by status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Status</SelectItem>
                         <SelectItem value="active">Active</SelectItem>
                         <SelectItem value="inactive">Inactive</SelectItem>
                         <SelectItem value="suspended">Suspended</SelectItem>
@@ -296,217 +413,472 @@ export default function UsersPage() {
                 </Select>
             </div>
 
-            {/* Users Table */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Users</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>User</TableHead>
-                                <TableHead>Contact</TableHead>
-                                <TableHead>Role</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Orders</TableHead>
-                                <TableHead>Total Spent</TableHead>
-                                <TableHead>Last Login</TableHead>
-                                <TableHead>Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {filteredUsers.map((user) => {
-                                const RoleIcon = getRoleIcon(user.role)
-                                return (
-                                    <TableRow key={user.id}>
-                                        <TableCell>
-                                            <div className="flex items-center space-x-3">
-                                                <Avatar className="h-8 w-8">
-                                                    <AvatarImage src={user.avatar || "/placeholder.svg"} />
-                                                    <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
-                                                </Avatar>
-                                                <div>
-                                                    <div className="font-medium">{user.name}</div>
-                                                    <div className="text-sm text-muted-foreground">ID: {user.id}</div>
-                                                </div>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div>
-                                                <div className="flex items-center space-x-1">
-                                                    <Mail className="h-3 w-3" />
-                                                    <span className="text-sm">{user.email}</span>
-                                                </div>
-                                                <div className="flex items-center space-x-1">
-                                                    <Phone className="h-3 w-3" />
-                                                    <span className="text-sm">{user.phone}</span>
-                                                </div>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center space-x-2">
-                                                <RoleIcon className="h-4 w-4" />
-                                                <Badge className={getRoleColor(user.role)}>{user.role}</Badge>
-                                            </div>
-                                        </TableCell>
-                                        <TableCell>
-                                            <Badge className={getStatusColor(user.status)}>{user.status}</Badge>
-                                        </TableCell>
-                                        <TableCell>{user.totalOrders}</TableCell>
-                                        <TableCell>${user.totalSpent.toFixed(2)}</TableCell>
-                                        <TableCell>{user.lastLogin}</TableCell>
-                                        <TableCell>
-                                            <div className="flex items-center space-x-2">
-                                                <Button variant="outline" size="sm" onClick={() => handleEditUser(user)}>
-                                                    <Edit className="h-4 w-4" />
-                                                </Button>
-                                                <Button
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={() => handleDeleteUser(user.id)}
-                                                    className="text-destructive hover:text-destructive"
-                                                >
-                                                    <Trash2 className="h-4 w-4" />
-                                                </Button>
-                                            </div>
-                                        </TableCell>
+            <div className="space-y-4">
+                <Label>Verification Status</Label>
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center space-x-2">
+                        <Switch
+                            id="emailVerified"
+                            checked={formData.emailVerified}
+                            onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, emailVerified: checked }))}
+                        />
+                        <Label htmlFor="emailVerified">Email Verified</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <Switch
+                            id="phoneVerified"
+                            checked={formData.phoneVerified}
+                            onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, phoneVerified: checked }))}
+                        />
+                        <Label htmlFor="phoneVerified">Phone Verified</Label>
+                    </div>
+                </div>
+            </div>
+
+            <div className="space-y-4">
+                <Label>Notification Preferences</Label>
+                <div className="space-y-3">
+                    <div className="flex items-center space-x-2">
+                        <Switch
+                            id="newsletter"
+                            checked={formData.newsletter}
+                            onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, newsletter: checked }))}
+                        />
+                        <Label htmlFor="newsletter">Newsletter Subscription</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <Switch
+                            id="smsNotifications"
+                            checked={formData.smsNotifications}
+                            onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, smsNotifications: checked }))}
+                        />
+                        <Label htmlFor="smsNotifications">SMS Notifications</Label>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                        <Switch
+                            id="emailNotifications"
+                            checked={formData.emailNotifications}
+                            onCheckedChange={(checked) => setFormData((prev) => ({ ...prev, emailNotifications: checked }))}
+                        />
+                        <Label htmlFor="emailNotifications">Email Notifications</Label>
+                    </div>
+                </div>
+            </div>
+        </div>
+    )
+
+    return (
+        <div className="space-y-6">
+            <div className="flex items-center justify-between">
+                <div>
+                    <h1 className="text-3xl font-bold">Users Management</h1>
+                    <p className="text-muted-foreground">Manage user accounts, roles, and permissions</p>
+                </div>
+                <Button onClick={handleAddUser}>
+                    <UserPlus className="mr-2 h-4 w-4" />
+                    Add User
+                </Button>
+            </div>
+
+            {/* Overview Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Users</CardTitle>
+                        <Activity className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{users.length}</div>
+                        <p className="text-xs text-muted-foreground">Active: {activeUsers}</p>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Revenue</CardTitle>
+                        <Activity className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">${totalRevenue.toFixed(2)}</div>
+                        <p className="text-xs text-muted-foreground">From {totalOrders} orders</p>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Admin Users</CardTitle>
+                        <Shield className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{users.filter((u) => u.role === "admin").length}</div>
+                        <p className="text-xs text-muted-foreground">Administrative accounts</p>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Suspended</CardTitle>
+                        <ShieldOff className="h-4 w-4 text-red-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-red-600">
+                            {users.filter((u) => u.status === "suspended").length}
+                        </div>
+                        <p className="text-xs text-muted-foreground">Require attention</p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <Tabs defaultValue="users" className="space-y-4">
+                <TabsList>
+                    <TabsTrigger value="users">All Users</TabsTrigger>
+                    <TabsTrigger value="activity">Recent Activity</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="users" className="space-y-4">
+                    {/* Filters */}
+                    <div className="flex items-center gap-4">
+                        <div className="relative flex-1 max-w-sm">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                            <Input
+                                placeholder="Search users..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="pl-10"
+                            />
+                        </div>
+                        <Select value={filterRole} onValueChange={setFilterRole}>
+                            <SelectTrigger className="w-48">
+                                <SelectValue placeholder="Filter by role" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Roles</SelectItem>
+                                <SelectItem value="user">Users</SelectItem>
+                                <SelectItem value="admin">Admins</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <Select value={filterStatus} onValueChange={setFilterStatus}>
+                            <SelectTrigger className="w-48">
+                                <SelectValue placeholder="Filter by status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Status</SelectItem>
+                                <SelectItem value="active">Active</SelectItem>
+                                <SelectItem value="inactive">Inactive</SelectItem>
+                                <SelectItem value="suspended">Suspended</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Users Table */}
+                    <Card>
+                        <CardContent className="p-0">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>User</TableHead>
+                                        <TableHead>Role</TableHead>
+                                        <TableHead>Status</TableHead>
+                                        <TableHead>Orders</TableHead>
+                                        <TableHead>Spent</TableHead>
+                                        <TableHead>Last Login</TableHead>
+                                        <TableHead>Actions</TableHead>
                                     </TableRow>
-                                )
-                            })}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredUsers.map((user) => (
+                                        <TableRow key={user.id}>
+                                            <TableCell>
+                                                <div className="flex items-center gap-3">
+                                                    <Avatar className="h-10 w-10">
+                                                        <AvatarImage src={user.avatar || "/placeholder.svg"} alt={user.name} />
+                                                        <AvatarFallback>{user.name.charAt(0).toUpperCase()}</AvatarFallback>
+                                                    </Avatar>
+                                                    <div>
+                                                        <div className="font-medium">{user.name}</div>
+                                                        <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                                            <Mail className="h-3 w-3" />
+                                                            {user.email}
+                                                            {user.emailVerified && (
+                                                                <Badge variant="outline" className="text-xs">
+                                                                    Verified
+                                                                </Badge>
+                                                            )}
+                                                        </div>
+                                                        {user.phone && (
+                                                            <div className="text-sm text-muted-foreground flex items-center gap-1">
+                                                                <Phone className="h-3 w-3" />
+                                                                {user.phone}
+                                                                {user.phoneVerified && (
+                                                                    <Badge variant="outline" className="text-xs">
+                                                                        Verified
+                                                                    </Badge>
+                                                                )}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant={getRoleColor(user.role) as any}>
+                                                    {user.role === "admin" && <Shield className="h-3 w-3 mr-1" />}
+                                                    {user.role.charAt(0).toUpperCase() + user.role.slice(1)}
+                                                </Badge>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Select
+                                                    value={user.status}
+                                                    onValueChange={(value: "active" | "inactive" | "suspended") =>
+                                                        handleStatusChange(user.id, value)
+                                                    }
+                                                >
+                                                    <SelectTrigger className="w-32">
+                                                        <Badge variant={getStatusColor(user.status) as any} className="border-0">
+                                                            {user.status.charAt(0).toUpperCase() + user.status.slice(1)}
+                                                        </Badge>
+                                                    </SelectTrigger>
+                                                    <SelectContent>
+                                                        <SelectItem value="active">Active</SelectItem>
+                                                        <SelectItem value="inactive">Inactive</SelectItem>
+                                                        <SelectItem value="suspended">Suspended</SelectItem>
+                                                    </SelectContent>
+                                                </Select>
+                                            </TableCell>
+                                            <TableCell>
+                                                <Badge variant="outline">{user.totalOrders}</Badge>
+                                            </TableCell>
+                                            <TableCell>${user.totalSpent.toFixed(2)}</TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center gap-1 text-sm text-muted-foreground">
+                                                    <Calendar className="h-3 w-3" />
+                                                    {user.lastLogin}
+                                                </div>
+                                            </TableCell>
+                                            <TableCell>
+                                                <div className="flex items-center gap-1">
+                                                    <Button variant="ghost" size="icon" onClick={() => handleViewUser(user)}>
+                                                        <Activity className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" onClick={() => handleEditUser(user)}>
+                                                        <Edit className="h-4 w-4" />
+                                                    </Button>
+                                                    <Button
+                                                        variant="ghost"
+                                                        size="icon"
+                                                        onClick={() => handleDeleteUser(user.id)}
+                                                        className="text-destructive hover:text-destructive"
+                                                    >
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
 
-            {/* Add/Edit User Dialog */}
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="max-w-2xl">
+                <TabsContent value="activity" className="space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Recent User Activity</CardTitle>
+                            <CardDescription>Track user actions and system events</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Date</TableHead>
+                                        <TableHead>User</TableHead>
+                                        <TableHead>Action</TableHead>
+                                        <TableHead>Details</TableHead>
+                                        <TableHead>IP Address</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {users
+                                        .flatMap((user) =>
+                                            user.activityLog.map((activity) => ({
+                                                ...activity,
+                                                userName: user.name,
+                                                userEmail: user.email,
+                                                userId: user.id,
+                                            })),
+                                        )
+                                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                        .slice(0, 20)
+                                        .map((activity, index) => (
+                                            <TableRow key={index}>
+                                                <TableCell>{activity.date}</TableCell>
+                                                <TableCell>
+                                                    <div>
+                                                        <div className="font-medium">{activity.userName}</div>
+                                                        <div className="text-sm text-muted-foreground">{activity.userEmail}</div>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline">{activity.action}</Badge>
+                                                </TableCell>
+                                                <TableCell>{activity.details}</TableCell>
+                                                <TableCell>{activity.ipAddress || "-"}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
+
+            {/* Add User Dialog */}
+            <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
                     <DialogHeader>
-                        <DialogTitle>{editingUser ? "Edit User" : "Add New User"}</DialogTitle>
-                        <DialogDescription>
-                            {editingUser ? "Update user information and permissions" : "Create a new user account"}
-                        </DialogDescription>
+                        <DialogTitle>Add New User</DialogTitle>
+                        <DialogDescription>Create a new user account with role and permissions</DialogDescription>
                     </DialogHeader>
-
-                    <Tabs defaultValue="basic" className="w-full">
-                        <TabsList className="grid w-full grid-cols-2">
-                            <TabsTrigger value="basic">Basic Info</TabsTrigger>
-                            <TabsTrigger value="permissions">Permissions</TabsTrigger>
-                        </TabsList>
-
-                        <TabsContent value="basic" className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="name">Full Name</Label>
-                                    <Input
-                                        id="name"
-                                        value={formData.name}
-                                        onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                                        placeholder="Enter full name"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="email">Email</Label>
-                                    <Input
-                                        id="email"
-                                        type="email"
-                                        value={formData.email}
-                                        onChange={(e) => setFormData((prev) => ({ ...prev, email: e.target.value }))}
-                                        placeholder="user@example.com"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="phone">Phone</Label>
-                                    <Input
-                                        id="phone"
-                                        value={formData.phone}
-                                        onChange={(e) => setFormData((prev) => ({ ...prev, phone: e.target.value }))}
-                                        placeholder="+1234567890"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="status">Status</Label>
-                                    <Select
-                                        value={formData.status}
-                                        onValueChange={(value: AdminUser["status"]) => setFormData((prev) => ({ ...prev, status: value }))}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="active">Active</SelectItem>
-                                            <SelectItem value="inactive">Inactive</SelectItem>
-                                            <SelectItem value="suspended">Suspended</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-                                <div className="space-y-2 col-span-2">
-                                    <Label htmlFor="address">Address</Label>
-                                    <Input
-                                        id="address"
-                                        value={formData.address}
-                                        onChange={(e) => setFormData((prev) => ({ ...prev, address: e.target.value }))}
-                                        placeholder="Full address"
-                                    />
-                                </div>
-                            </div>
-                        </TabsContent>
-
-                        <TabsContent value="permissions" className="space-y-4">
-                            <div className="space-y-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="role">User Role</Label>
-                                    <Select
-                                        value={formData.role}
-                                        onValueChange={(value: AdminUser["role"]) => setFormData((prev) => ({ ...prev, role: value }))}
-                                    >
-                                        <SelectTrigger>
-                                            <SelectValue />
-                                        </SelectTrigger>
-                                        <SelectContent>
-                                            <SelectItem value="user">User - Basic access</SelectItem>
-                                            <SelectItem value="moderator">Moderator - Content management</SelectItem>
-                                            <SelectItem value="admin">Admin - Full access</SelectItem>
-                                        </SelectContent>
-                                    </Select>
-                                </div>
-
-                                <div className="p-4 bg-muted rounded-lg">
-                                    <h4 className="font-medium mb-2">Role Permissions:</h4>
-                                    {formData.role === "user" && (
-                                        <ul className="text-sm text-muted-foreground space-y-1">
-                                            <li>• View and purchase products</li>
-                                            <li>• Manage personal account</li>
-                                            <li>• View order history</li>
-                                        </ul>
-                                    )}
-                                    {formData.role === "moderator" && (
-                                        <ul className="text-sm text-muted-foreground space-y-1">
-                                            <li>• All user permissions</li>
-                                            <li>• Manage blog posts</li>
-                                            <li>• Moderate user content</li>
-                                            <li>• View basic analytics</li>
-                                        </ul>
-                                    )}
-                                    {formData.role === "admin" && (
-                                        <ul className="text-sm text-muted-foreground space-y-1">
-                                            <li>• Full system access</li>
-                                            <li>• Manage all users</li>
-                                            <li>• Access admin dashboard</li>
-                                            <li>• Modify system settings</li>
-                                        </ul>
-                                    )}
-                                </div>
-                            </div>
-                        </TabsContent>
-                    </Tabs>
-
+                    <UserForm />
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                        <Button variant="outline" onClick={() => setIsAddDialogOpen(false)}>
                             Cancel
                         </Button>
-                        <Button onClick={handleSaveUser}>{editingUser ? "Update User" : "Create User"}</Button>
+                        <Button onClick={handleSaveUser}>Add User</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Edit User Dialog */}
+            <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+                <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>Edit User</DialogTitle>
+                        <DialogDescription>Update user information and permissions</DialogDescription>
+                    </DialogHeader>
+                    <UserForm />
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handleSaveUser}>Update User</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* View User Dialog */}
+            <Dialog open={isViewDialogOpen} onOpenChange={setIsViewDialogOpen}>
+                <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+                    <DialogHeader>
+                        <DialogTitle>User Details</DialogTitle>
+                        <DialogDescription>Complete user profile and activity information</DialogDescription>
+                    </DialogHeader>
+                    {selectedUser && (
+                        <div className="space-y-6">
+                            <div className="flex items-center gap-4">
+                                <Avatar className="h-16 w-16">
+                                    <AvatarImage src={selectedUser.avatar || "/placeholder.svg"} alt={selectedUser.name} />
+                                    <AvatarFallback className="text-lg">{selectedUser.name.charAt(0).toUpperCase()}</AvatarFallback>
+                                </Avatar>
+                                <div>
+                                    <h3 className="text-xl font-semibold">{selectedUser.name}</h3>
+                                    <p className="text-muted-foreground">{selectedUser.email}</p>
+                                    <div className="flex items-center gap-2 mt-1">
+                                        <Badge variant={getRoleColor(selectedUser.role) as any}>{selectedUser.role}</Badge>
+                                        <Badge variant={getStatusColor(selectedUser.status) as any}>{selectedUser.status}</Badge>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-6">
+                                <div className="space-y-4">
+                                    <h4 className="font-medium">Contact Information</h4>
+                                    <div className="space-y-2 text-sm">
+                                        <div className="flex items-center gap-2">
+                                            <Mail className="h-4 w-4" />
+                                            {selectedUser.email}
+                                            {selectedUser.emailVerified && (
+                                                <Badge variant="outline" className="text-xs">
+                                                    Verified
+                                                </Badge>
+                                            )}
+                                        </div>
+                                        {selectedUser.phone && (
+                                            <div className="flex items-center gap-2">
+                                                <Phone className="h-4 w-4" />
+                                                {selectedUser.phone}
+                                                {selectedUser.phoneVerified && (
+                                                    <Badge variant="outline" className="text-xs">
+                                                        Verified
+                                                    </Badge>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <h4 className="font-medium">Account Statistics</h4>
+                                    <div className="space-y-2 text-sm">
+                                        <div>Registration: {selectedUser.registrationDate}</div>
+                                        <div>Last Login: {selectedUser.lastLogin}</div>
+                                        <div>Total Orders: {selectedUser.totalOrders}</div>
+                                        <div>Total Spent: ${selectedUser.totalSpent.toFixed(2)}</div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {selectedUser.address && (
+                                <div className="space-y-4">
+                                    <h4 className="font-medium">Address</h4>
+                                    <div className="text-sm text-muted-foreground">
+                                        {selectedUser.address.street}, {selectedUser.address.city}, {selectedUser.address.state}{" "}
+                                        {selectedUser.address.zipCode}, {selectedUser.address.country}
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="space-y-4">
+                                <h4 className="font-medium">Preferences</h4>
+                                <div className="grid grid-cols-3 gap-4 text-sm">
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant={selectedUser.preferences.newsletter ? "default" : "secondary"}>
+                                            Newsletter: {selectedUser.preferences.newsletter ? "Yes" : "No"}
+                                        </Badge>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant={selectedUser.preferences.smsNotifications ? "default" : "secondary"}>
+                                            SMS: {selectedUser.preferences.smsNotifications ? "Yes" : "No"}
+                                        </Badge>
+                                    </div>
+                                    <div className="flex items-center gap-2">
+                                        <Badge variant={selectedUser.preferences.emailNotifications ? "default" : "secondary"}>
+                                            Email: {selectedUser.preferences.emailNotifications ? "Yes" : "No"}
+                                        </Badge>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="space-y-4">
+                                <h4 className="font-medium">Recent Activity</h4>
+                                <div className="space-y-2">
+                                    {selectedUser.activityLog.slice(0, 5).map((activity, index) => (
+                                        <div key={index} className="flex items-center justify-between p-2 border rounded text-sm">
+                                            <div>
+                                                <div className="font-medium">{activity.action}</div>
+                                                <div className="text-muted-foreground">{activity.details}</div>
+                                            </div>
+                                            <div className="text-muted-foreground">{activity.date}</div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsViewDialogOpen(false)}>
+                            Close
+                        </Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
