@@ -1,11 +1,13 @@
 "use client"
 
-import { useState } from "react"
-import { Search, Package, DollarSign, TrendingUp, TrendingDown, AlertTriangle, Edit, Plus } from "lucide-react"
+import { useState, useEffect } from "react"
+import { AlertTriangle, TrendingUp, Package, DollarSign, Search, Download } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Label } from "@/components/ui/label"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import {
@@ -15,478 +17,811 @@ import {
     DialogFooter,
     DialogHeader,
     DialogTitle,
+    DialogTrigger,
 } from "@/components/ui/dialog"
-import { Label } from "@/components/ui/label"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { Textarea } from "@/components/ui/textarea"
+import { dummyProducts } from "@/lib/dummy-data"
+import type { Product } from "@/components/product-card"
+import Image from "next/image"
 
-type InventoryItem = {
-    id: string
-    name: string
-    sku: string
-    category: string
-    currentStock: number
-    minStock: number
-    maxStock: number
-    costPrice: number
-    sellingPrice: number
-    margin: number
+type InventoryItem = Product & {
+    cost: number
+    reorderPoint: number
+    reorderQuantity: number
     supplier: string
     lastRestocked: string
-    status: "in-stock" | "low-stock" | "out-of-stock" | "discontinued"
+    priceHistory: Array<{
+        date: string
+        price: number
+        reason: string
+    }>
+    stockMovements: Array<{
+        date: string
+        type: "in" | "out" | "adjustment"
+        quantity: number
+        reason: string
+        reference?: string
+    }>
 }
 
-const dummyInventory: InventoryItem[] = [
-    {
-        id: "1",
-        name: "Monstera Deliciosa",
-        sku: "PLT-MON-001",
-        category: "Indoor Plants",
-        currentStock: 25,
-        minStock: 10,
-        maxStock: 50,
-        costPrice: 25.0,
-        sellingPrice: 45.99,
-        margin: 45.6,
-        supplier: "Green Thumb Nursery",
-        lastRestocked: "2024-01-10",
-        status: "in-stock",
-    },
-    {
-        id: "2",
-        name: "Snake Plant",
-        sku: "PLT-SNK-002",
-        category: "Indoor Plants",
-        currentStock: 5,
-        minStock: 8,
-        maxStock: 30,
-        costPrice: 15.0,
-        sellingPrice: 29.99,
-        margin: 50.0,
-        supplier: "Plant Paradise",
-        lastRestocked: "2024-01-05",
-        status: "low-stock",
-    },
-    {
-        id: "3",
-        name: "Fiddle Leaf Fig",
-        sku: "PLT-FIG-003",
-        category: "Indoor Plants",
-        currentStock: 0,
-        minStock: 5,
-        maxStock: 20,
-        costPrice: 45.0,
-        sellingPrice: 89.99,
-        margin: 50.0,
-        supplier: "Tropical Plants Co",
-        lastRestocked: "2023-12-20",
-        status: "out-of-stock",
-    },
-]
+type BulkPriceUpdate = {
+    category: string
+    adjustmentType: "percentage" | "fixed"
+    adjustmentValue: number
+    reason: string
+}
 
-export default function InventoryPage() {
-    const [inventory, setInventory] = useState<InventoryItem[]>(dummyInventory)
+export default function InventoryManagementPage() {
+    const [inventory, setInventory] = useState<InventoryItem[]>([])
     const [searchTerm, setSearchTerm] = useState("")
-    const [statusFilter, setStatusFilter] = useState<string>("all")
-    const [isDialogOpen, setIsDialogOpen] = useState(false)
-    const [editingItem, setEditingItem] = useState<InventoryItem | null>(null)
-    const [formData, setFormData] = useState({
-        name: "",
-        sku: "",
-        category: "",
-        currentStock: "",
-        minStock: "",
-        maxStock: "",
-        costPrice: "",
-        sellingPrice: "",
-        supplier: "",
+    const [filterCategory, setFilterCategory] = useState("all")
+    const [filterStock, setFilterStock] = useState("all")
+    const [selectedItems, setSelectedItems] = useState<string[]>([])
+    const [isStockAdjustmentOpen, setIsStockAdjustmentOpen] = useState(false)
+    const [isPriceUpdateOpen, setIsPriceUpdateOpen] = useState(false)
+    const [isBulkPriceUpdateOpen, setIsBulkPriceUpdateOpen] = useState(false)
+    const [selectedItem, setSelectedItem] = useState<InventoryItem | null>(null)
+
+    // Form states
+    const [stockAdjustment, setStockAdjustment] = useState({
+        type: "in" as "in" | "out" | "adjustment",
+        quantity: "",
+        reason: "",
+        reference: "",
     })
+
+    const [priceUpdate, setPriceUpdate] = useState({
+        newPrice: "",
+        newSalePrice: "",
+        reason: "",
+    })
+
+    const [bulkPriceUpdate, setBulkPriceUpdate] = useState<BulkPriceUpdate>({
+        category: "all",
+        adjustmentType: "percentage",
+        adjustmentValue: 0,
+        reason: "",
+    })
+
+    useEffect(() => {
+        // Convert dummy products to inventory items with additional data
+        const inventoryData: InventoryItem[] = dummyProducts.map((product) => ({
+            ...product,
+            cost: product.price * 0.6, // 40% markup
+            reorderPoint: Math.max(5, Math.floor(product.stock * 0.2)),
+            reorderQuantity: Math.max(10, Math.floor(product.stock * 0.5)),
+            supplier: "Green Thumb Nursery",
+            lastRestocked: "2024-01-15",
+            priceHistory: [
+                {
+                    date: "2024-01-01",
+                    price: product.price * 0.9,
+                    reason: "Initial pricing",
+                },
+                {
+                    date: "2024-01-15",
+                    price: product.price,
+                    reason: "Market adjustment",
+                },
+            ],
+            stockMovements: [
+                {
+                    date: "2024-01-15",
+                    type: "in" as const,
+                    quantity: product.stock,
+                    reason: "Initial stock",
+                    reference: "PO-2024-001",
+                },
+            ],
+        }))
+        setInventory(inventoryData)
+    }, [])
 
     const filteredInventory = inventory.filter((item) => {
         const matchesSearch =
             item.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            item.sku.toLowerCase().includes(searchTerm.toLowerCase()) ||
             item.category.toLowerCase().includes(searchTerm.toLowerCase())
 
-        const matchesStatus = statusFilter === "all" || item.status === statusFilter
+        const matchesCategory = filterCategory === "all" || item.category === filterCategory
 
-        return matchesSearch && matchesStatus
+        const matchesStock =
+            filterStock === "all" ||
+            (filterStock === "low" && item.stock <= item.reorderPoint) ||
+            (filterStock === "out" && item.stock === 0) ||
+            (filterStock === "good" && item.stock > item.reorderPoint)
+
+        return matchesSearch && matchesCategory && matchesStock
     })
 
-    const handleEditItem = (item: InventoryItem) => {
-        setEditingItem(item)
-        setFormData({
-            name: item.name,
-            sku: item.sku,
-            category: item.category,
-            currentStock: item.currentStock.toString(),
-            minStock: item.minStock.toString(),
-            maxStock: item.maxStock.toString(),
-            costPrice: item.costPrice.toString(),
-            sellingPrice: item.sellingPrice.toString(),
-            supplier: item.supplier,
-        })
-        setIsDialogOpen(true)
-    }
+    const lowStockItems = inventory.filter((item) => item.stock <= item.reorderPoint && item.stock > 0)
+    const outOfStockItems = inventory.filter((item) => item.stock === 0)
+    const totalValue = inventory.reduce((sum, item) => sum + item.price * item.stock, 0)
+    const totalCost = inventory.reduce((sum, item) => sum + item.cost * item.stock, 0)
 
-    const handleAddItem = () => {
-        setEditingItem(null)
-        setFormData({
-            name: "",
-            sku: "",
-            category: "",
-            currentStock: "",
-            minStock: "",
-            maxStock: "",
-            costPrice: "",
-            sellingPrice: "",
-            supplier: "",
-        })
-        setIsDialogOpen(true)
-    }
+    const handleStockAdjustment = () => {
+        if (!selectedItem) return
 
-    const handleSaveItem = () => {
-        const margin =
-            ((Number.parseFloat(formData.sellingPrice) - Number.parseFloat(formData.costPrice)) /
-                Number.parseFloat(formData.sellingPrice)) *
-            100
-        const currentStock = Number.parseInt(formData.currentStock)
-        const minStock = Number.parseInt(formData.minStock)
-
-        let status: InventoryItem["status"] = "in-stock"
-        if (currentStock === 0) status = "out-of-stock"
-        else if (currentStock <= minStock) status = "low-stock"
-
-        const itemData: InventoryItem = {
-            id: editingItem?.id || Date.now().toString(),
-            name: formData.name,
-            sku: formData.sku,
-            category: formData.category,
-            currentStock: currentStock,
-            minStock: minStock,
-            maxStock: Number.parseInt(formData.maxStock),
-            costPrice: Number.parseFloat(formData.costPrice),
-            sellingPrice: Number.parseFloat(formData.sellingPrice),
-            margin: margin,
-            supplier: formData.supplier,
-            lastRestocked: editingItem?.lastRestocked || new Date().toISOString().split("T")[0],
-            status: status,
+        const adjustment = {
+            date: new Date().toISOString().split("T")[0],
+            type: stockAdjustment.type,
+            quantity: Number.parseInt(stockAdjustment.quantity),
+            reason: stockAdjustment.reason,
+            reference: stockAdjustment.reference,
         }
 
-        if (editingItem) {
-            setInventory((prev) => prev.map((item) => (item.id === editingItem.id ? itemData : item)))
+        let newStock = selectedItem.stock
+        if (stockAdjustment.type === "in") {
+            newStock += adjustment.quantity
+        } else if (stockAdjustment.type === "out") {
+            newStock = Math.max(0, newStock - adjustment.quantity)
         } else {
-            setInventory((prev) => [...prev, itemData])
+            newStock = adjustment.quantity
         }
 
-        setIsDialogOpen(false)
+        setInventory((prev) =>
+            prev.map((item) =>
+                item.id === selectedItem.id
+                    ? {
+                        ...item,
+                        stock: newStock,
+                        stockMovements: [...item.stockMovements, adjustment],
+                        lastRestocked: stockAdjustment.type === "in" ? adjustment.date : item.lastRestocked,
+                    }
+                    : item,
+            ),
+        )
+
+        setIsStockAdjustmentOpen(false)
+        setStockAdjustment({ type: "in", quantity: "", reason: "", reference: "" })
+        setSelectedItem(null)
     }
 
-    const inventoryStats = {
-        totalItems: inventory.length,
-        inStock: inventory.filter((item) => item.status === "in-stock").length,
-        lowStock: inventory.filter((item) => item.status === "low-stock").length,
-        outOfStock: inventory.filter((item) => item.status === "out-of-stock").length,
-        totalValue: inventory.reduce((sum, item) => sum + item.currentStock * item.costPrice, 0),
-    }
+    const handlePriceUpdate = () => {
+        if (!selectedItem) return
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case "in-stock":
-                return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300"
-            case "low-stock":
-                return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-300"
-            case "out-of-stock":
-                return "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300"
-            case "discontinued":
-                return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300"
-            default:
-                return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-300"
+        const priceHistory = {
+            date: new Date().toISOString().split("T")[0],
+            price: Number.parseFloat(priceUpdate.newPrice),
+            reason: priceUpdate.reason,
         }
+
+        setInventory((prev) =>
+            prev.map((item) =>
+                item.id === selectedItem.id
+                    ? {
+                        ...item,
+                        price: Number.parseFloat(priceUpdate.newPrice),
+                        salePrice: priceUpdate.newSalePrice ? Number.parseFloat(priceUpdate.newSalePrice) : undefined,
+                        priceHistory: [...item.priceHistory, priceHistory],
+                    }
+                    : item,
+            ),
+        )
+
+        setIsPriceUpdateOpen(false)
+        setPriceUpdate({ newPrice: "", newSalePrice: "", reason: "" })
+        setSelectedItem(null)
+    }
+
+    const handleBulkPriceUpdate = () => {
+        const targetItems =
+            bulkPriceUpdate.category === "all"
+                ? inventory
+                : inventory.filter((item) => item.category === bulkPriceUpdate.category)
+
+        const updatedInventory = inventory.map((item) => {
+            if (!targetItems.find((target) => target.id === item.id)) return item
+
+            let newPrice = item.price
+            if (bulkPriceUpdate.adjustmentType === "percentage") {
+                newPrice = item.price * (1 + bulkPriceUpdate.adjustmentValue / 100)
+            } else {
+                newPrice = item.price + bulkPriceUpdate.adjustmentValue
+            }
+
+            return {
+                ...item,
+                price: Math.max(0.01, Number.parseFloat(newPrice.toFixed(2))),
+                priceHistory: [
+                    ...item.priceHistory,
+                    {
+                        date: new Date().toISOString().split("T")[0],
+                        price: newPrice,
+                        reason: bulkPriceUpdate.reason,
+                    },
+                ],
+            }
+        })
+
+        setInventory(updatedInventory)
+        setIsBulkPriceUpdateOpen(false)
+        setBulkPriceUpdate({ category: "all", adjustmentType: "percentage", adjustmentValue: 0, reason: "" })
+    }
+
+    const getStockStatus = (item: InventoryItem) => {
+        if (item.stock === 0) return { label: "Out of Stock", variant: "destructive" as const }
+        if (item.stock <= item.reorderPoint) return { label: "Low Stock", variant: "secondary" as const }
+        return { label: "In Stock", variant: "default" as const }
+    }
+
+    const getProfitMargin = (item: InventoryItem) => {
+        return (((item.price - item.cost) / item.price) * 100).toFixed(1)
     }
 
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
+            <div className="flex items-center justify-between">
                 <div>
-                    <h2 className="text-3xl font-bold tracking-tight">Price & Inventory Management</h2>
+                    <h1 className="text-3xl font-bold">Price & Inventory Management</h1>
                     <p className="text-muted-foreground">Manage stock levels, pricing, and inventory operations</p>
                 </div>
-                <Button onClick={handleAddItem}>
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Item
-                </Button>
-            </div>
-
-            {/* Inventory Stats */}
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Items</CardTitle>
-                        <Package className="h-4 w-4 text-muted-foreground" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{inventoryStats.totalItems}</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">In Stock</CardTitle>
-                        <TrendingUp className="h-4 w-4 text-green-600" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{inventoryStats.inStock}</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Low Stock</CardTitle>
-                        <AlertTriangle className="h-4 w-4 text-yellow-600" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{inventoryStats.lowStock}</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Out of Stock</CardTitle>
-                        <TrendingDown className="h-4 w-4 text-red-600" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">{inventoryStats.outOfStock}</div>
-                    </CardContent>
-                </Card>
-                <Card>
-                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Total Value</CardTitle>
-                        <DollarSign className="h-4 w-4 text-blue-600" />
-                    </CardHeader>
-                    <CardContent>
-                        <div className="text-2xl font-bold">${inventoryStats.totalValue.toFixed(2)}</div>
-                    </CardContent>
-                </Card>
-            </div>
-
-            {/* Filters */}
-            <div className="flex items-center space-x-2">
-                <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
-                    <Input
-                        placeholder="Search by name, SKU, or category..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="pl-10"
-                    />
-                </div>
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
-                    <SelectTrigger className="w-[180px]">
-                        <SelectValue placeholder="Filter by status" />
-                    </SelectTrigger>
-                    <SelectContent>
-                        <SelectItem value="all">All Status</SelectItem>
-                        <SelectItem value="in-stock">In Stock</SelectItem>
-                        <SelectItem value="low-stock">Low Stock</SelectItem>
-                        <SelectItem value="out-of-stock">Out of Stock</SelectItem>
-                        <SelectItem value="discontinued">Discontinued</SelectItem>
-                    </SelectContent>
-                </Select>
-            </div>
-
-            {/* Inventory Table */}
-            <Card>
-                <CardHeader>
-                    <CardTitle>Inventory Items</CardTitle>
-                </CardHeader>
-                <CardContent>
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Product</TableHead>
-                                <TableHead>SKU</TableHead>
-                                <TableHead>Category</TableHead>
-                                <TableHead>Stock</TableHead>
-                                <TableHead>Cost Price</TableHead>
-                                <TableHead>Selling Price</TableHead>
-                                <TableHead>Margin</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead>Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {filteredInventory.map((item) => (
-                                <TableRow key={item.id}>
-                                    <TableCell>
-                                        <div>
-                                            <div className="font-medium">{item.name}</div>
-                                            <div className="text-sm text-muted-foreground">{item.supplier}</div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell className="font-mono">{item.sku}</TableCell>
-                                    <TableCell>{item.category}</TableCell>
-                                    <TableCell>
-                                        <div>
-                                            <div className="font-medium">{item.currentStock}</div>
-                                            <div className="text-sm text-muted-foreground">Min: {item.minStock}</div>
-                                        </div>
-                                    </TableCell>
-                                    <TableCell>${item.costPrice.toFixed(2)}</TableCell>
-                                    <TableCell>${item.sellingPrice.toFixed(2)}</TableCell>
-                                    <TableCell>{item.margin.toFixed(1)}%</TableCell>
-                                    <TableCell>
-                                        <Badge className={getStatusColor(item.status)}>{item.status.replace("-", " ")}</Badge>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Button variant="outline" size="sm" onClick={() => handleEditItem(item)}>
-                                            <Edit className="h-4 w-4" />
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </CardContent>
-            </Card>
-
-            {/* Add/Edit Item Dialog */}
-            <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
-                <DialogContent className="max-w-2xl">
-                    <DialogHeader>
-                        <DialogTitle>{editingItem ? "Edit Inventory Item" : "Add New Item"}</DialogTitle>
-                        <DialogDescription>
-                            {editingItem ? "Update inventory item details" : "Add a new item to inventory"}
-                        </DialogDescription>
-                    </DialogHeader>
-
-                    <Tabs defaultValue="basic" className="w-full">
-                        <TabsList className="grid w-full grid-cols-2">
-                            <TabsTrigger value="basic">Basic Info</TabsTrigger>
-                            <TabsTrigger value="pricing">Pricing & Stock</TabsTrigger>
-                        </TabsList>
-
-                        <TabsContent value="basic" className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
+                <div className="flex items-center gap-2">
+                    <Dialog open={isBulkPriceUpdateOpen} onOpenChange={setIsBulkPriceUpdateOpen}>
+                        <DialogTrigger asChild>
+                            <Button variant="outline">
+                                <TrendingUp className="mr-2 h-4 w-4" />
+                                Bulk Price Update
+                            </Button>
+                        </DialogTrigger>
+                        <DialogContent>
+                            <DialogHeader>
+                                <DialogTitle>Bulk Price Update</DialogTitle>
+                                <DialogDescription>Update prices for multiple products at once</DialogDescription>
+                            </DialogHeader>
+                            <div className="space-y-4">
                                 <div className="space-y-2">
-                                    <Label htmlFor="name">Product Name</Label>
-                                    <Input
-                                        id="name"
-                                        value={formData.name}
-                                        onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
-                                        placeholder="Enter product name"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="sku">SKU</Label>
-                                    <Input
-                                        id="sku"
-                                        value={formData.sku}
-                                        onChange={(e) => setFormData((prev) => ({ ...prev, sku: e.target.value }))}
-                                        placeholder="PLT-XXX-001"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="category">Category</Label>
+                                    <Label>Category</Label>
                                     <Select
-                                        value={formData.category}
-                                        onValueChange={(value) => setFormData((prev) => ({ ...prev, category: value }))}
+                                        value={bulkPriceUpdate.category}
+                                        onValueChange={(value) => setBulkPriceUpdate((prev) => ({ ...prev, category: value }))}
                                     >
                                         <SelectTrigger>
-                                            <SelectValue placeholder="Select category" />
+                                            <SelectValue />
                                         </SelectTrigger>
                                         <SelectContent>
-                                            <SelectItem value="Indoor Plants">Indoor Plants</SelectItem>
-                                            <SelectItem value="Outdoor Plants">Outdoor Plants</SelectItem>
-                                            <SelectItem value="Succulents">Succulents</SelectItem>
-                                            <SelectItem value="Herbs">Herbs</SelectItem>
+                                            <SelectItem value="all">All Categories</SelectItem>
+                                            <SelectItem value="indoor">Indoor Plants</SelectItem>
+                                            <SelectItem value="outdoor">Outdoor Plants</SelectItem>
+                                            <SelectItem value="succulents">Succulents</SelectItem>
                                         </SelectContent>
                                     </Select>
                                 </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="supplier">Supplier</Label>
-                                    <Input
-                                        id="supplier"
-                                        value={formData.supplier}
-                                        onChange={(e) => setFormData((prev) => ({ ...prev, supplier: e.target.value }))}
-                                        placeholder="Supplier name"
-                                    />
-                                </div>
-                            </div>
-                        </TabsContent>
-
-                        <TabsContent value="pricing" className="space-y-4">
-                            <div className="grid grid-cols-2 gap-4">
-                                <div className="space-y-2">
-                                    <Label htmlFor="currentStock">Current Stock</Label>
-                                    <Input
-                                        id="currentStock"
-                                        type="number"
-                                        value={formData.currentStock}
-                                        onChange={(e) => setFormData((prev) => ({ ...prev, currentStock: e.target.value }))}
-                                        placeholder="0"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="minStock">Minimum Stock</Label>
-                                    <Input
-                                        id="minStock"
-                                        type="number"
-                                        value={formData.minStock}
-                                        onChange={(e) => setFormData((prev) => ({ ...prev, minStock: e.target.value }))}
-                                        placeholder="0"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="maxStock">Maximum Stock</Label>
-                                    <Input
-                                        id="maxStock"
-                                        type="number"
-                                        value={formData.maxStock}
-                                        onChange={(e) => setFormData((prev) => ({ ...prev, maxStock: e.target.value }))}
-                                        placeholder="0"
-                                    />
-                                </div>
-                                <div className="space-y-2">
-                                    <Label htmlFor="costPrice">Cost Price ($)</Label>
-                                    <Input
-                                        id="costPrice"
-                                        type="number"
-                                        step="0.01"
-                                        value={formData.costPrice}
-                                        onChange={(e) => setFormData((prev) => ({ ...prev, costPrice: e.target.value }))}
-                                        placeholder="0.00"
-                                    />
-                                </div>
-                                <div className="space-y-2 col-span-2">
-                                    <Label htmlFor="sellingPrice">Selling Price ($)</Label>
-                                    <Input
-                                        id="sellingPrice"
-                                        type="number"
-                                        step="0.01"
-                                        value={formData.sellingPrice}
-                                        onChange={(e) => setFormData((prev) => ({ ...prev, sellingPrice: e.target.value }))}
-                                        placeholder="0.00"
-                                    />
-                                </div>
-                                {formData.costPrice && formData.sellingPrice && (
-                                    <div className="col-span-2 p-3 bg-muted rounded-lg">
-                                        <p className="text-sm font-medium">
-                                            Profit Margin:{" "}
-                                            {(
-                                                ((Number.parseFloat(formData.sellingPrice) - Number.parseFloat(formData.costPrice)) /
-                                                    Number.parseFloat(formData.sellingPrice)) *
-                                                100
-                                            ).toFixed(1)}
-                                            %
-                                        </p>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <Label>Adjustment Type</Label>
+                                        <Select
+                                            value={bulkPriceUpdate.adjustmentType}
+                                            onValueChange={(value: "percentage" | "fixed") =>
+                                                setBulkPriceUpdate((prev) => ({ ...prev, adjustmentType: value }))
+                                            }
+                                        >
+                                            <SelectTrigger>
+                                                <SelectValue />
+                                            </SelectTrigger>
+                                            <SelectContent>
+                                                <SelectItem value="percentage">Percentage</SelectItem>
+                                                <SelectItem value="fixed">Fixed Amount</SelectItem>
+                                            </SelectContent>
+                                        </Select>
                                     </div>
-                                )}
+                                    <div className="space-y-2">
+                                        <Label>{bulkPriceUpdate.adjustmentType === "percentage" ? "Percentage (%)" : "Amount ($)"}</Label>
+                                        <Input
+                                            type="number"
+                                            step={bulkPriceUpdate.adjustmentType === "percentage" ? "0.1" : "0.01"}
+                                            value={bulkPriceUpdate.adjustmentValue}
+                                            onChange={(e) =>
+                                                setBulkPriceUpdate((prev) => ({ ...prev, adjustmentValue: Number.parseFloat(e.target.value) }))
+                                            }
+                                        />
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <Label>Reason</Label>
+                                    <Textarea
+                                        value={bulkPriceUpdate.reason}
+                                        onChange={(e) => setBulkPriceUpdate((prev) => ({ ...prev, reason: e.target.value }))}
+                                        placeholder="Reason for price adjustment"
+                                    />
+                                </div>
                             </div>
-                        </TabsContent>
-                    </Tabs>
+                            <DialogFooter>
+                                <Button variant="outline" onClick={() => setIsBulkPriceUpdateOpen(false)}>
+                                    Cancel
+                                </Button>
+                                <Button onClick={handleBulkPriceUpdate}>Update Prices</Button>
+                            </DialogFooter>
+                        </DialogContent>
+                    </Dialog>
+                    <Button variant="outline">
+                        <Download className="mr-2 h-4 w-4" />
+                        Export
+                    </Button>
+                </div>
+            </div>
 
+            {/* Overview Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Inventory Value</CardTitle>
+                        <DollarSign className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">${totalValue.toFixed(2)}</div>
+                        <p className="text-xs text-muted-foreground">
+                            Cost: ${totalCost.toFixed(2)} | Profit: ${(totalValue - totalCost).toFixed(2)}
+                        </p>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Low Stock Items</CardTitle>
+                        <AlertTriangle className="h-4 w-4 text-yellow-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-yellow-600">{lowStockItems.length}</div>
+                        <p className="text-xs text-muted-foreground">Need reordering</p>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Out of Stock</CardTitle>
+                        <Package className="h-4 w-4 text-red-500" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-red-600">{outOfStockItems.length}</div>
+                        <p className="text-xs text-muted-foreground">Immediate attention needed</p>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium">Total Products</CardTitle>
+                        <Package className="h-4 w-4 text-muted-foreground" />
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold">{inventory.length}</div>
+                        <p className="text-xs text-muted-foreground">Active products</p>
+                    </CardContent>
+                </Card>
+            </div>
+
+            <Tabs defaultValue="inventory" className="space-y-4">
+                <TabsList>
+                    <TabsTrigger value="inventory">Inventory Overview</TabsTrigger>
+                    <TabsTrigger value="alerts">Stock Alerts</TabsTrigger>
+                    <TabsTrigger value="movements">Stock Movements</TabsTrigger>
+                </TabsList>
+
+                <TabsContent value="inventory" className="space-y-4">
+                    {/* Filters */}
+                    <div className="flex items-center gap-4">
+                        <div className="relative flex-1 max-w-sm">
+                            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground h-4 w-4" />
+                            <Input
+                                placeholder="Search inventory..."
+                                value={searchTerm}
+                                onChange={(e) => setSearchTerm(e.target.value)}
+                                className="pl-10"
+                            />
+                        </div>
+                        <Select value={filterCategory} onValueChange={setFilterCategory}>
+                            <SelectTrigger className="w-48">
+                                <SelectValue placeholder="Category" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Categories</SelectItem>
+                                <SelectItem value="indoor">Indoor Plants</SelectItem>
+                                <SelectItem value="outdoor">Outdoor Plants</SelectItem>
+                                <SelectItem value="succulents">Succulents</SelectItem>
+                            </SelectContent>
+                        </Select>
+                        <Select value={filterStock} onValueChange={setFilterStock}>
+                            <SelectTrigger className="w-48">
+                                <SelectValue placeholder="Stock Status" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">All Stock Levels</SelectItem>
+                                <SelectItem value="good">In Stock</SelectItem>
+                                <SelectItem value="low">Low Stock</SelectItem>
+                                <SelectItem value="out">Out of Stock</SelectItem>
+                            </SelectContent>
+                        </Select>
+                    </div>
+
+                    {/* Inventory Table */}
+                    <Card>
+                        <CardContent className="p-0">
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Product</TableHead>
+                                        <TableHead>Category</TableHead>
+                                        <TableHead>Stock</TableHead>
+                                        <TableHead>Price</TableHead>
+                                        <TableHead>Cost</TableHead>
+                                        <TableHead>Margin</TableHead>
+                                        <TableHead>Value</TableHead>
+                                        <TableHead>Actions</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {filteredInventory.map((item) => {
+                                        const stockStatus = getStockStatus(item)
+                                        return (
+                                            <TableRow key={item.id}>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-3">
+                                                        <div className="relative w-12 h-12 rounded-md overflow-hidden">
+                                                            <Image
+                                                                src={item.image || "/placeholder.svg"}
+                                                                alt={item.name}
+                                                                fill
+                                                                className="object-cover"
+                                                            />
+                                                        </div>
+                                                        <div>
+                                                            <div className="font-medium">{item.name}</div>
+                                                            <div className="text-sm text-muted-foreground">ID: {item.id}</div>
+                                                        </div>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline">{item.category}</Badge>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div className="space-y-1">
+                                                        <Badge variant={stockStatus.variant}>{item.stock} units</Badge>
+                                                        <div className="text-xs text-muted-foreground">Reorder at: {item.reorderPoint}</div>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>
+                                                    <div>
+                                                        <div className="font-medium">${item.price.toFixed(2)}</div>
+                                                        {item.sale && item.salePrice && (
+                                                            <div className="text-sm text-green-600">Sale: ${item.salePrice.toFixed(2)}</div>
+                                                        )}
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell>${item.cost.toFixed(2)}</TableCell>
+                                                <TableCell>
+                                                    <Badge variant="outline">{getProfitMargin(item)}%</Badge>
+                                                </TableCell>
+                                                <TableCell>${(item.price * item.stock).toFixed(2)}</TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-1">
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => {
+                                                                setSelectedItem(item)
+                                                                setStockAdjustment({ type: "in", quantity: "", reason: "", reference: "" })
+                                                                setIsStockAdjustmentOpen(true)
+                                                            }}
+                                                        >
+                                                            <Package className="h-4 w-4" />
+                                                        </Button>
+                                                        <Button
+                                                            variant="ghost"
+                                                            size="icon"
+                                                            onClick={() => {
+                                                                setSelectedItem(item)
+                                                                setPriceUpdate({
+                                                                    newPrice: item.price.toString(),
+                                                                    newSalePrice: item.salePrice?.toString() || "",
+                                                                    reason: "",
+                                                                })
+                                                                setIsPriceUpdateOpen(true)
+                                                            }}
+                                                        >
+                                                            <DollarSign className="h-4 w-4" />
+                                                        </Button>
+                                                    </div>
+                                                </TableCell>
+                                            </TableRow>
+                                        )
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+
+                <TabsContent value="alerts" className="space-y-4">
+                    <div className="grid gap-4">
+                        {outOfStockItems.length > 0 && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-red-600 flex items-center gap-2">
+                                        <AlertTriangle className="h-5 w-5" />
+                                        Out of Stock ({outOfStockItems.length})
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-2">
+                                        {outOfStockItems.map((item) => (
+                                            <div key={item.id} className="flex items-center justify-between p-2 border rounded">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="relative w-8 h-8 rounded overflow-hidden">
+                                                        <Image
+                                                            src={item.image || "/placeholder.svg"}
+                                                            alt={item.name}
+                                                            fill
+                                                            className="object-cover"
+                                                        />
+                                                    </div>
+                                                    <span className="font-medium">{item.name}</span>
+                                                </div>
+                                                <Button
+                                                    size="sm"
+                                                    onClick={() => {
+                                                        setSelectedItem(item)
+                                                        setStockAdjustment({
+                                                            type: "in",
+                                                            quantity: item.reorderQuantity.toString(),
+                                                            reason: "Restock",
+                                                            reference: "",
+                                                        })
+                                                        setIsStockAdjustmentOpen(true)
+                                                    }}
+                                                >
+                                                    Restock
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+
+                        {lowStockItems.length > 0 && (
+                            <Card>
+                                <CardHeader>
+                                    <CardTitle className="text-yellow-600 flex items-center gap-2">
+                                        <AlertTriangle className="h-5 w-5" />
+                                        Low Stock ({lowStockItems.length})
+                                    </CardTitle>
+                                </CardHeader>
+                                <CardContent>
+                                    <div className="space-y-2">
+                                        {lowStockItems.map((item) => (
+                                            <div key={item.id} className="flex items-center justify-between p-2 border rounded">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="relative w-8 h-8 rounded overflow-hidden">
+                                                        <Image
+                                                            src={item.image || "/placeholder.svg"}
+                                                            alt={item.name}
+                                                            fill
+                                                            className="object-cover"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-medium">{item.name}</span>
+                                                        <div className="text-sm text-muted-foreground">
+                                                            {item.stock} left (reorder at {item.reorderPoint})
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <Button
+                                                    size="sm"
+                                                    variant="outline"
+                                                    onClick={() => {
+                                                        setSelectedItem(item)
+                                                        setStockAdjustment({
+                                                            type: "in",
+                                                            quantity: item.reorderQuantity.toString(),
+                                                            reason: "Restock",
+                                                            reference: "",
+                                                        })
+                                                        setIsStockAdjustmentOpen(true)
+                                                    }}
+                                                >
+                                                    Restock
+                                                </Button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </CardContent>
+                            </Card>
+                        )}
+                    </div>
+                </TabsContent>
+
+                <TabsContent value="movements" className="space-y-4">
+                    <Card>
+                        <CardHeader>
+                            <CardTitle>Recent Stock Movements</CardTitle>
+                            <CardDescription>Track all inventory changes and adjustments</CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                            <Table>
+                                <TableHeader>
+                                    <TableRow>
+                                        <TableHead>Date</TableHead>
+                                        <TableHead>Product</TableHead>
+                                        <TableHead>Type</TableHead>
+                                        <TableHead>Quantity</TableHead>
+                                        <TableHead>Reason</TableHead>
+                                        <TableHead>Reference</TableHead>
+                                    </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {inventory
+                                        .flatMap((item) =>
+                                            item.stockMovements.map((movement) => ({
+                                                ...movement,
+                                                productName: item.name,
+                                                productId: item.id,
+                                            })),
+                                        )
+                                        .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+                                        .slice(0, 20)
+                                        .map((movement, index) => (
+                                            <TableRow key={index}>
+                                                <TableCell>{movement.date}</TableCell>
+                                                <TableCell>{movement.productName}</TableCell>
+                                                <TableCell>
+                                                    <Badge
+                                                        variant={
+                                                            movement.type === "in" ? "default" : movement.type === "out" ? "secondary" : "outline"
+                                                        }
+                                                    >
+                                                        {movement.type === "in" ? "Stock In" : movement.type === "out" ? "Stock Out" : "Adjustment"}
+                                                    </Badge>
+                                                </TableCell>
+                                                <TableCell>
+                          <span
+                              className={
+                                  movement.type === "in" ? "text-green-600" : movement.type === "out" ? "text-red-600" : ""
+                              }
+                          >
+                            {movement.type === "in" ? "+" : movement.type === "out" ? "-" : ""}
+                              {movement.quantity}
+                          </span>
+                                                </TableCell>
+                                                <TableCell>{movement.reason}</TableCell>
+                                                <TableCell>{movement.reference || "-"}</TableCell>
+                                            </TableRow>
+                                        ))}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
+                </TabsContent>
+            </Tabs>
+
+            {/* Stock Adjustment Dialog */}
+            <Dialog open={isStockAdjustmentOpen} onOpenChange={setIsStockAdjustmentOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Stock Adjustment</DialogTitle>
+                        <DialogDescription>Adjust stock levels for {selectedItem?.name}</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="space-y-2">
+                            <Label>Adjustment Type</Label>
+                            <Select
+                                value={stockAdjustment.type}
+                                onValueChange={(value: "in" | "out" | "adjustment") =>
+                                    setStockAdjustment((prev) => ({ ...prev, type: value }))
+                                }
+                            >
+                                <SelectTrigger>
+                                    <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                    <SelectItem value="in">Stock In (Add)</SelectItem>
+                                    <SelectItem value="out">Stock Out (Remove)</SelectItem>
+                                    <SelectItem value="adjustment">Set Exact Amount</SelectItem>
+                                </SelectContent>
+                            </Select>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>{stockAdjustment.type === "adjustment" ? "New Stock Level" : "Quantity"}</Label>
+                            <Input
+                                type="number"
+                                value={stockAdjustment.quantity}
+                                onChange={(e) => setStockAdjustment((prev) => ({ ...prev, quantity: e.target.value }))}
+                                placeholder="Enter quantity"
+                            />
+                            {selectedItem && (
+                                <p className="text-sm text-muted-foreground">Current stock: {selectedItem.stock} units</p>
+                            )}
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Reason</Label>
+                            <Textarea
+                                value={stockAdjustment.reason}
+                                onChange={(e) => setStockAdjustment((prev) => ({ ...prev, reason: e.target.value }))}
+                                placeholder="Reason for adjustment"
+                            />
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Reference (Optional)</Label>
+                            <Input
+                                value={stockAdjustment.reference}
+                                onChange={(e) => setStockAdjustment((prev) => ({ ...prev, reference: e.target.value }))}
+                                placeholder="PO number, invoice, etc."
+                            />
+                        </div>
+                    </div>
                     <DialogFooter>
-                        <Button variant="outline" onClick={() => setIsDialogOpen(false)}>
+                        <Button variant="outline" onClick={() => setIsStockAdjustmentOpen(false)}>
                             Cancel
                         </Button>
-                        <Button onClick={handleSaveItem}>{editingItem ? "Update Item" : "Add Item"}</Button>
+                        <Button onClick={handleStockAdjustment}>Update Stock</Button>
+                    </DialogFooter>
+                </DialogContent>
+            </Dialog>
+
+            {/* Price Update Dialog */}
+            <Dialog open={isPriceUpdateOpen} onOpenChange={setIsPriceUpdateOpen}>
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle>Update Price</DialogTitle>
+                        <DialogDescription>Update pricing for {selectedItem?.name}</DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="space-y-2">
+                                <Label>Regular Price ($)</Label>
+                                <Input
+                                    type="number"
+                                    step="0.01"
+                                    value={priceUpdate.newPrice}
+                                    onChange={(e) => setPriceUpdate((prev) => ({ ...prev, newPrice: e.target.value }))}
+                                />
+                                {selectedItem && (
+                                    <p className="text-sm text-muted-foreground">Current: ${selectedItem.price.toFixed(2)}</p>
+                                )}
+                            </div>
+                            <div className="space-y-2">
+                                <Label>Sale Price ($)</Label>
+                                <Input
+                                    type="number"
+                                    step="0.01"
+                                    value={priceUpdate.newSalePrice}
+                                    onChange={(e) => setPriceUpdate((prev) => ({ ...prev, newSalePrice: e.target.value }))}
+                                    placeholder="Optional"
+                                />
+                                {selectedItem?.salePrice && (
+                                    <p className="text-sm text-muted-foreground">Current: ${selectedItem.salePrice.toFixed(2)}</p>
+                                )}
+                            </div>
+                        </div>
+                        <div className="space-y-2">
+                            <Label>Reason for Price Change</Label>
+                            <Textarea
+                                value={priceUpdate.reason}
+                                onChange={(e) => setPriceUpdate((prev) => ({ ...prev, reason: e.target.value }))}
+                                placeholder="Market adjustment, cost change, promotion, etc."
+                            />
+                        </div>
+                        {selectedItem && priceUpdate.newPrice && (
+                            <div className="p-3 bg-muted rounded-lg">
+                                <p className="text-sm font-medium">Price Change Summary:</p>
+                                <p className="text-sm text-muted-foreground">
+                                    Old: ${selectedItem.price.toFixed(2)} → New: ${Number.parseFloat(priceUpdate.newPrice).toFixed(2)}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                    Change:{" "}
+                                    {(
+                                        ((Number.parseFloat(priceUpdate.newPrice) - selectedItem.price) / selectedItem.price) *
+                                        100
+                                    ).toFixed(1)}
+                                    %
+                                </p>
+                            </div>
+                        )}
+                    </div>
+                    <DialogFooter>
+                        <Button variant="outline" onClick={() => setIsPriceUpdateOpen(false)}>
+                            Cancel
+                        </Button>
+                        <Button onClick={handlePriceUpdate}>Update Price</Button>
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
