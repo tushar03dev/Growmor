@@ -1,6 +1,6 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import {User} from '../models/model.js';
+import {Admin, User} from '../models/model.js';
 import dotenv from 'dotenv';
 import {passwordResetMail, sendOTP} from "./otpController.js";
 import {getRedisClient} from '../config/redis.js';
@@ -88,7 +88,7 @@ export const completeSignUp = async (req, res, next) => {
             await user.save();
 
             // Generate JWT token
-            const token = jwt.sign({email: createPayload.email}, process.env.JWT_SECRET, {expiresIn: "1d"});
+            const token = jwt.sign({user: user._id, email: createPayload.email}, process.env.JWT_SECRET, {expiresIn: "1d"});
 
             await redisClient.del([`signup:${createPayload.email}`, `otp:${createPayload.email}`]); // Clean up Redis entry
 
@@ -126,7 +126,7 @@ export const signIn = async (req, res, next) => {
             return;
         }
 
-        const token = jwt.sign({email: user.email}, process.env.JWT_SECRET, {expiresIn: '1d'});
+        const token = jwt.sign({user: user._id, email: user.email}, process.env.JWT_SECRET, {expiresIn: '1d'});
 
        return res.json({success: true, token, name: user.name});
     } catch (err) {
@@ -201,28 +201,33 @@ export const changePassword = async (req, res, next) => {
 
 export const adminLogin = async (req, res, next) => {
     const {email, password} = req.body;
-
-    const admin = await Admin.findOne({email});
-    if (!admin) {
-        return res.status(401).json({message: 'Invalid credentials'});
+    if(!email || !password) {
+        return res.status(400).send('Invalid email or password');
     }
 
-    const isPasswordValid = await bcrypt.compare(password, admin.password);
-    if (!isPasswordValid) {
-        return res.status(401).json({message: 'Invalid credentials'});
-    }
+    try {
 
-    const token = jwt.sign(
-        {id: admin.id, email: admin.email, isAdmin: true},
-        process.env.JWT_SECRET,
-        {expiresIn: JWT_EXPIRES_IN}
-    )
-
-    res.json({
-        token,
-        admin: {
-            id: admin._id,
-            email: admin.email
+        const admin = await Admin.findOne({email});
+        if (!admin) {
+            return res.status(401).json({message: 'Invalid email'});
         }
-    });
+
+        if (password !== admin.password) {
+
+            console.log(typeof password);
+            console.log(typeof admin.password);
+            return res.status(401).json({message: 'Invalid password'});
+        }
+
+        const token = jwt.sign(
+            {id: admin._id, email: admin.email, isAdmin: true},
+            process.env.JWT_SECRET,
+            {expiresIn: '2d'}
+        )
+
+        res.status(200).json({success: true, token, name: admin.name});
+    } catch (err) {
+        res.status(400).send("Access to Admin Panel Denied");
+        next(err);
+    }
 };

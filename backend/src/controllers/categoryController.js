@@ -1,6 +1,5 @@
 import {Category, Plant} from "../models/model.js";
 
-
 export const getAllCategories = async (req, res) => {
   try {
     const categories = await Category.find({});

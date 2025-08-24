@@ -23,7 +23,7 @@ export default function LoginPage() {
   const [isAdminMode, setIsAdminMode] = useState(false)
   const [adminEmail, setAdminEmail] = useState("")
   const [adminPassword, setAdminPassword] = useState("")
-  const { login } = useAuth()
+  const { login,adminLogin } = useAuth()
   const router = useRouter()
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -52,10 +52,12 @@ export default function LoginPage() {
 
     try {
       // Check admin credentials
-      if (adminEmail === "admin@growmor.com" && adminPassword === "admin123") {
+      const success = await adminLogin(adminEmail, adminPassword)
+      if (success) {
         // Store admin session
         localStorage.setItem("adminAuth", "true")
         router.push("/admin/dashboard")
+
       } else {
         setError("Invalid admin credentials")
       }
