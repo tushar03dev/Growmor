@@ -1,11 +1,12 @@
-import type { Product } from "@/components/product-card"
-import type { BlogPost } from "@/components/blog-card"
+import type { Product } from "@/components/product-card";
+import type { BlogPost } from "@/components/blog-card";
 
 export const dummyProducts: Product[] = [
   {
     id: "1",
     name: "Monstera Deliciosa",
-    description: "The Swiss Cheese Plant, known for its iconic split leaves and tropical vibes.",
+    description:
+      "The Swiss Cheese Plant, known for its iconic split leaves and tropical vibes.",
     price: 39.99,
     image: "/placeholder.svg?height=400&width=400",
     category: "indoor",
@@ -15,7 +16,8 @@ export const dummyProducts: Product[] = [
   {
     id: "2",
     name: "Fiddle Leaf Fig",
-    description: "A popular indoor tree with large, violin-shaped leaves that can grow up to 10 feet tall.",
+    description:
+      "A popular indoor tree with large, violin-shaped leaves that can grow up to 10 feet tall.",
     price: 49.99,
     image: "/placeholder.svg?height=400&width=400",
     category: "indoor",
@@ -25,7 +27,8 @@ export const dummyProducts: Product[] = [
   {
     id: "3",
     name: "Snake Plant",
-    description: "An easy-care, drought-tolerant plant with stiff, upright leaves.",
+    description:
+      "An easy-care, drought-tolerant plant with stiff, upright leaves.",
     price: 29.99,
     image: "/placeholder.svg?height=400&width=400",
     category: "indoor",
@@ -37,7 +40,8 @@ export const dummyProducts: Product[] = [
   {
     id: "4",
     name: "ZZ Plant",
-    description: "A hardy plant with glossy, dark green leaves that can tolerate low light and neglect.",
+    description:
+      "A hardy plant with glossy, dark green leaves that can tolerate low light and neglect.",
     price: 34.99,
     image: "/placeholder.svg?height=400&width=400",
     category: "indoor",
@@ -47,7 +51,8 @@ export const dummyProducts: Product[] = [
   {
     id: "5",
     name: "Pothos",
-    description: "A trailing vine with heart-shaped leaves, perfect for hanging baskets or shelves.",
+    description:
+      "A trailing vine with heart-shaped leaves, perfect for hanging baskets or shelves.",
     price: 19.99,
     image: "/placeholder.svg?height=400&width=400",
     category: "indoor",
@@ -57,7 +62,8 @@ export const dummyProducts: Product[] = [
   {
     id: "6",
     name: "Peace Lily",
-    description: "An elegant plant with glossy leaves and white flowers, known for its air-purifying qualities.",
+    description:
+      "An elegant plant with glossy leaves and white flowers, known for its air-purifying qualities.",
     price: 29.99,
     image: "/placeholder.svg?height=400&width=400",
     category: "indoor",
@@ -67,7 +73,8 @@ export const dummyProducts: Product[] = [
   {
     id: "7",
     name: "Aloe Vera",
-    description: "A succulent with healing properties, perfect for sunny windowsills.",
+    description:
+      "A succulent with healing properties, perfect for sunny windowsills.",
     price: 15.99,
     image: "/placeholder.svg?height=400&width=400",
     category: "succulents",
@@ -79,7 +86,8 @@ export const dummyProducts: Product[] = [
   {
     id: "8",
     name: "Rubber Plant",
-    description: "A popular houseplant with large, glossy leaves that can grow into a statement tree.",
+    description:
+      "A popular houseplant with large, glossy leaves that can grow into a statement tree.",
     price: 45.99,
     image: "/placeholder.svg?height=400&width=400",
     category: "indoor",
@@ -89,7 +97,8 @@ export const dummyProducts: Product[] = [
   {
     id: "9",
     name: "Lavender",
-    description: "A fragrant herb with purple flowers, perfect for gardens and containers.",
+    description:
+      "A fragrant herb with purple flowers, perfect for gardens and containers.",
     price: 12.99,
     image: "/placeholder.svg?height=400&width=400",
     category: "outdoor",
@@ -99,7 +108,8 @@ export const dummyProducts: Product[] = [
   {
     id: "10",
     name: "Japanese Maple",
-    description: "A small ornamental tree with stunning red foliage, perfect for adding color to your garden.",
+    description:
+      "A small ornamental tree with stunning red foliage, perfect for adding color to your garden.",
     price: 89.99,
     image: "/placeholder.svg?height=400&width=400",
     category: "outdoor",
@@ -119,7 +129,8 @@ export const dummyProducts: Product[] = [
   {
     id: "12",
     name: "Bird of Paradise",
-    description: "A tropical plant with large, banana-like leaves and striking orange flowers.",
+    description:
+      "A tropical plant with large, banana-like leaves and striking orange flowers.",
     price: 59.99,
     image: "/placeholder.svg?height=400&width=400",
     category: "indoor",
@@ -128,16 +139,17 @@ export const dummyProducts: Product[] = [
     sale: true,
     salePrice: 49.99,
   },
-]
+];
 
 export const dummyBlogPosts: BlogPost[] = [
   {
     id: "1",
     title: "10 Tips for Caring for Indoor Plants",
-    excerpt: "Learn how to keep your indoor plants thriving with these essential care tips.",
+    excerpt:
+      "Learn how to keep your indoor plants thriving with these essential care tips.",
     content:
       "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl, eu aliquam nisl nisl eu nisl. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl, eu aliquam nisl nisl eu nisl.",
-    image: "/placeholder.svg?height=400&width=800",
+    image: "/How_to_take_care_of_plants_1200x768.avif?height=400&width=800",
     author: "Jane Smith",
     date: "2023-05-15",
     slug: "10-tips-for-caring-for-indoor-plants",
@@ -145,10 +157,11 @@ export const dummyBlogPosts: BlogPost[] = [
   {
     id: "2",
     title: "How to Repot Your Plants: A Step-by-Step Guide",
-    excerpt: "Everything you need to know about repotting your plants for optimal growth.",
+    excerpt:
+      "Everything you need to know about repotting your plants for optimal growth.",
     content:
       "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl, eu aliquam nisl nisl eu nisl. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl, eu aliquam nisl nisl eu nisl.",
-    image: "/placeholder.svg?height=400&width=800",
+    image: "/repot.jpg?height=400&width=800",
     author: "John Doe",
     date: "2023-06-22",
     slug: "how-to-repot-your-plants",
@@ -156,12 +169,13 @@ export const dummyBlogPosts: BlogPost[] = [
   {
     id: "3",
     title: "The Best Low-Maintenance Plants for Busy People",
-    excerpt: "Discover plants that thrive on neglect, perfect for those with busy lifestyles.",
+    excerpt:
+      "Discover plants that thrive on neglect, perfect for those with busy lifestyles.",
     content:
       "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl, eu aliquam nisl nisl eu nisl. Sed euismod, nisl vel ultricies lacinia, nisl nisl aliquam nisl, eu aliquam nisl nisl eu nisl.",
-    image: "/placeholder.svg?height=400&width=800",
+    image: "/low_maintance.webp?height=400&width=800",
     author: "Sarah Johnson",
     date: "2023-07-10",
     slug: "low-maintenance-plants-for-busy-people",
   },
-]
+];

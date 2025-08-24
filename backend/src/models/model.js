@@ -7,13 +7,13 @@ const AdminSchema = new Schema({
 });
 
 const UserSchema = new Schema({
-    name: { type: String, required: true },
-    email: { type: String, required: true, unique: true },
-    password: { type: String },
-    googleId: { type: String, unique: true, sparse: true },
-    cart: { type: Schema.Types.ObjectId, ref: 'Cart' },
-    orders: [{ type: Schema.Types.ObjectId, ref: 'Order' }],
-    reviews: [{ type: Schema.Types.ObjectId, ref: 'Review' }]
+  name: { type: String, required: true },
+  email: { type: String, required: true, unique: true },
+  password: { type: String },
+  googleId: { type: String, unique: true, sparse: true },
+  cart: { type: Schema.Types.ObjectId, ref: "Cart" },
+  orders: [{ type: Schema.Types.ObjectId, ref: "Order" }],
+  reviews: [{ type: Schema.Types.ObjectId, ref: "Review" }],
 });
 
 const CategorySchema = new Schema({
@@ -122,6 +122,20 @@ const CartItemSchema = new Schema({
   quantity: { type: Number, default: 1 },
 });
 
+const NewsletterSchema = new mongoose.Schema({
+  email: {
+    type: String,
+    required: true,
+    unique: true,
+    lowercase: true,
+    trim: true,
+  },
+  subscribedAt: {
+    type: Date,
+    default: Date.now,
+  },
+});
+
 const Admin = mongoose.model("Admin", AdminSchema);
 const User = mongoose.model("User", UserSchema);
 const Category = mongoose.model("Category", CategorySchema);
@@ -135,6 +149,7 @@ const Blog = mongoose.model("Blog", BlogSchema);
 const Plant = mongoose.model("Plant", PlantSchema);
 const Cart = mongoose.model("Cart", CartSchema);
 const CartItem = mongoose.model("CartItem", CartItemSchema);
+const Newsletter = mongoose.model("Newsletter", NewsletterSchema);
 
 export {
   Admin,
@@ -150,6 +165,7 @@ export {
   Plant,
   Cart,
   CartItem,
+  Newsletter,
 };
 
 export default {
@@ -166,4 +182,5 @@ export default {
   Plant,
   Cart,
   CartItem,
+  Newsletter,
 };
