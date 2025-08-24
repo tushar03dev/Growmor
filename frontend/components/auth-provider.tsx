@@ -17,6 +17,7 @@ type AuthContextType = {
   user: User | null
   isLoading: boolean
   login: (email: string, password: string) => Promise<boolean>
+  adminLogin: (email: string, password: string) => Promise<boolean>
   signup: (name: string, email: string, password: string) => Promise<boolean>
   logout: () => void
   verifyOtp: (otp: string) => Promise<boolean>
@@ -47,6 +48,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
     checkAuth()
   }, [])
+
+  const adminLogin = async (email: string, password: string) => {
+
+  }
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
