@@ -9,6 +9,7 @@ import bodyParser from "body-parser";
 import plantRoutes from "./routes/PlantRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 import blogRoutes from "./routes/blogRoutes.js";
+import newsletterRoutes from "./routes/newLetterRoutes.js";
 
 
 // Load environment variables
@@ -44,6 +45,7 @@ app.use("/otp", otpRoutes);
 app.use("/plants", plantRoutes);
 app.use("/category", categoryRoutes);
 app.use("/blogs", blogRoutes);
+app.use("/newsletter", newsletterRoutes);
 
 // Start server
 const PORT = process.env.PORT;
