@@ -1,28 +1,26 @@
-const express = require('express');
+import express from "express";
+import plantController from "../controllers/plantController.js";
+import multer from "multer";
+
+// Middlewares (notice the `.js` at the end 👇)
+import isAdmin from "../middlewares/isAdmin.js";
+import authMiddleware from "../middlewares/authMiddleware.js";
+
 const router = express.Router();
 
-
-const plantController = require("../controllers/plantController.js");
-
-
-//Middlwares
-const isAdmin = require("../middlewares/isAdmin.js");
-const uploadMiddleware = require("../middlewares/upload.js");
-const authMiddleware = require("../middlewares/authMiddleware.js")
-
-
+const upload = multer({ storage: multer.memoryStorage() });
 
 // Public routes
-router.get('/', plantController.getAllPlants);
-router.get('/trending', plantController.getTrendingPlants);
-router.get('/bestsellers', plantController.getBestSellerPlants);
-router.get('/:id', plantController.getPlantById);
+router.get("/", plantController.getAllPlants);
+router.get("/trending", plantController.getTrendingPlants);
+router.get("/bestsellers", plantController.getBestSellerPlants);
+router.get("/:id", plantController.getPlantById);
 
 // Admin-only routes
-router.post('/',authMiddleware, isAdmin, uploadMiddleware, plantController.createPlant);
-router.put('/:id',authMiddleware,  isAdmin, uploadMiddleware, plantController.updatePlant);
-router.delete('/:id', authMiddleware, isAdmin, plantController.deletePlant);
-// router.patch('/:id/trending',  isAdmin, plantController.setTrendingStatus);
-// router.patch('/:id/bestseller', isAdmin, plantController.setBestSellerStatus);
+router.post("/", upload.single("plant_image"), plantController.createPlant);
 
-module.exports = router;
+router.put("/:id", authMiddleware, isAdmin, plantController.updatePlant);
+
+router.delete("/:id", authMiddleware, isAdmin, plantController.deletePlant);
+
+export default router;

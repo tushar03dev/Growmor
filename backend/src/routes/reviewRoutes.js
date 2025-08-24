@@ -1,12 +1,12 @@
-const express = require('express');
+import express from "express";
+
+import reviewController from "../controllers/reviewController.js";
+import authMiddleware from "../middlewares/authMiddleware.js";
+
 const router = express.Router();
 
-const reviewController = require("../controllers/reviewController.js")
-const authMiddleware = require("../middlewares/authMiddleware.js");
+router.post("/plants/:id/reviews", authMiddleware, reviewController.addReview);
+router.get("/plants/:id/reviews", reviewController.getReviewsByPlant);
+router.delete("/reviews/:id", authMiddleware, reviewController.deleteReview);
 
-
-router.post('/plants/:id/reviews', authMiddleware, reviewController.addReview);
-router.get('/plants/:id/reviews', reviewController.getReviewsByPlant);
-router.delete('/reviews/:id', authMiddleware, reviewController.deleteReview);
-
-module.exports = router;
+export default router;

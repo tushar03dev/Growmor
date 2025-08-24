@@ -1,60 +1,62 @@
-"use client"
+"use client";
 
-import { useState, useEffect } from "react"
-import Link from "next/link"
-import Image from "next/image"
-import { ChevronLeft, ChevronRight } from "lucide-react"
-import { Button } from "@/components/ui/button"
+import { useState, useEffect } from "react";
+import Link from "next/link";
+import Image from "next/image";
+import { ChevronLeft, ChevronRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 type Slide = {
-  id: number
-  title: string
-  description: string
-  image: string
-  link: string
-}
-
+  id: number;
+  title: string;
+  description: string;
+  image: string;
+  link: string;
+};
 const slides: Slide[] = [
   {
     id: 1,
     title: "Premium Indoor Plants",
-    description: "Transform your space with our selection of beautiful indoor plants",
-    image: "/placeholder.svg?height=600&width=1200",
+    description:
+      "Transform your space with our selection of beautiful indoor plants",
+    image: "/Hero_slider1.webp",
     link: "/plants?category=indoor",
   },
   {
     id: 2,
     title: "Outdoor Collection",
-    description: "Discover plants that will make your garden thrive all year round",
-    image: "/placeholder.svg?height=600&width=1200",
+    description:
+      "Discover plants that will make your garden thrive all year round",
+    image: "/Hero_slider2.jpg",
     link: "/plants?category=outdoor",
   },
   {
     id: 3,
     title: "Rare & Exotic Plants",
-    description: "Unique and hard-to-find plants for collectors and enthusiasts",
-    image: "/placeholder.svg?height=600&width=1200",
+    description:
+      "Unique and hard-to-find plants for collectors and enthusiasts",
+    image: "/Hero_slider3.jpg",
     link: "/plants?category=exotic",
   },
-]
+];
 
 export function HeroSlider() {
-  const [currentSlide, setCurrentSlide] = useState(0)
+  const [currentSlide, setCurrentSlide] = useState(0);
 
   const nextSlide = () => {
-    setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1))
-  }
+    setCurrentSlide((prev) => (prev === slides.length - 1 ? 0 : prev + 1));
+  };
 
   const prevSlide = () => {
-    setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1))
-  }
+    setCurrentSlide((prev) => (prev === 0 ? slides.length - 1 : prev - 1));
+  };
 
   useEffect(() => {
     const interval = setInterval(() => {
-      nextSlide()
-    }, 5000)
-    return () => clearInterval(interval)
-  }, [])
+      nextSlide();
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   return (
     <div className="relative w-full h-[500px] md:h-[600px] overflow-hidden">
@@ -62,7 +64,9 @@ export function HeroSlider() {
         <div
           key={slide.id}
           className={`absolute inset-0 transition-opacity duration-1000 ${
-            index === currentSlide ? "opacity-100" : "opacity-0 pointer-events-none"
+            index === currentSlide
+              ? "opacity-100"
+              : "opacity-0 pointer-events-none"
           }`}
         >
           <div className="relative w-full h-full">
@@ -75,8 +79,12 @@ export function HeroSlider() {
             />
             <div className="absolute inset-0 bg-black/40" />
             <div className="absolute inset-0 flex flex-col items-center justify-center text-center p-4">
-              <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">{slide.title}</h1>
-              <p className="text-xl md:text-2xl text-white mb-8 max-w-2xl">{slide.description}</p>
+              <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
+                {slide.title}
+              </h1>
+              <p className="text-xl md:text-2xl text-white mb-8 max-w-2xl">
+                {slide.description}
+              </p>
               <Link href={slide.link}>
                 <Button size="lg" className="text-lg">
                   Shop Now
@@ -109,11 +117,13 @@ export function HeroSlider() {
         {slides.map((_, index) => (
           <button
             key={index}
-            className={`w-3 h-3 rounded-full ${index === currentSlide ? "bg-primary" : "bg-white/50"}`}
+            className={`w-3 h-3 rounded-full ${
+              index === currentSlide ? "bg-primary" : "bg-white/50"
+            }`}
             onClick={() => setCurrentSlide(index)}
           />
         ))}
       </div>
     </div>
-  )
+  );
 }
