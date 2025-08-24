@@ -7,13 +7,13 @@ const AdminSchema = new Schema({
 });
 
 const UserSchema = new Schema({
-  name: { type: String, required: true },
-  email: { type: String, required: true, unique: true },
-  password: { type: String, required: true },
-  googleId: { type: String, unique: true, sparse: true },
-  cart: { type: Schema.Types.ObjectId, ref: "Cart" },
-  orders: [{ type: Schema.Types.ObjectId, ref: "Order" }],
-  reviews: [{ type: Schema.Types.ObjectId, ref: "Review" }],
+    name: { type: String, required: true },
+    email: { type: String, required: true, unique: true },
+    password: { type: String },
+    googleId: { type: String, unique: true, sparse: true },
+    cart: { type: Schema.Types.ObjectId, ref: 'Cart' },
+    orders: [{ type: Schema.Types.ObjectId, ref: 'Order' }],
+    reviews: [{ type: Schema.Types.ObjectId, ref: 'Review' }]
 });
 
 const CategorySchema = new Schema({

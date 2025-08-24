@@ -1,147 +1,112 @@
 "use client"
 
+import type React from "react"
+
+import { useState } from "react"
+import { useRouter } from "next/navigation"
+import Link from "next/link"
+import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Package, ShoppingCart, DollarSign, Users, FileText, AlertTriangle, CheckCircle } from "lucide-react"
-import { AnalyticsChart } from "@/components/analytics-chart"
-import { RecentOrders } from "@/components/recent-orders"
-import { TopProducts } from "@/components/top-products"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { ThemeToggle } from "@/components/theme-toggle"
+import { Shield, ArrowLeft } from "lucide-react"
 
-export default function AdminDashboard() {
-  const stats = [
-    {
-      title: "Total Revenue",
-      value: "$45,231.89",
-      description: "+20.1% from last month",
-      icon: DollarSign,
-      color: "text-green-600",
-      trend: "up",
-    },
-    {
-      title: "Orders",
-      value: "2,350",
-      description: "+180.1% from last month",
-      icon: ShoppingCart,
-      color: "text-blue-600",
-      trend: "up",
-    },
-    {
-      title: "Products",
-      value: "1,234",
-      description: "+19% from last month",
-      icon: Package,
-      color: "text-purple-600",
-      trend: "up",
-    },
-    {
-      title: "Active Users",
-      value: "573",
-      description: "+201 since last hour",
-      icon: Users,
-      color: "text-orange-600",
-      trend: "up",
-    },
-  ]
+export default function AdminLogin() {
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState("")
+  const router = useRouter()
 
-  const quickStats = [
-    {
-      title: "Low Stock Items",
-      value: "12",
-      icon: AlertTriangle,
-      color: "text-red-600",
-      bgColor: "bg-red-50 dark:bg-red-950",
-    },
-    {
-      title: "Pending Orders",
-      value: "23",
-      icon: ShoppingCart,
-      color: "text-yellow-600",
-      bgColor: "bg-yellow-50 dark:bg-yellow-950",
-    },
-    {
-      title: "Published Posts",
-      value: "45",
-      icon: FileText,
-      color: "text-blue-600",
-      bgColor: "bg-blue-50 dark:bg-blue-950",
-    },
-    {
-      title: "Completed Orders",
-      value: "89",
-      icon: CheckCircle,
-      color: "text-green-600",
-      bgColor: "bg-green-50 dark:bg-green-950",
-    },
-  ]
+  const handleAdminLogin = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+    setError("")
+
+    try {
+      // Simulate API call delay
+      await new Promise((resolve) => setTimeout(resolve, 1000))
+
+      // Check admin credentials (in production, this should be server-side)
+      if (email === "admin@growmor.com" && password === "admin123") {
+        // Store admin authentication status
+        localStorage.setItem("adminAuthenticated", "true")
+        router.push("/admin/dashboard")
+      } else {
+        setError("Invalid admin credentials. Please check your email and password.")
+      }
+    } catch (err) {
+      setError("An error occurred. Please try again.")
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   return (
-      <div className="space-y-6">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Dashboard</h2>
-          <p className="text-muted-foreground">Here's what's happening with your plant store today.</p>
+      <div className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4">
+        <div className="absolute right-4 top-4">
+          <ThemeToggle />
         </div>
 
-        {/* Main Stats */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {stats.map((stat) => (
-              <Card key={stat.title}>
-                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                  <CardTitle className="text-sm font-medium">{stat.title}</CardTitle>
-                  <stat.icon className={`h-4 w-4 ${stat.color}`} />
-                </CardHeader>
-                <CardContent>
-                  <div className="text-2xl font-bold">{stat.value}</div>
-                  <p className="text-xs text-muted-foreground">{stat.description}</p>
-                </CardContent>
-              </Card>
-          ))}
+        <div className="absolute left-4 top-4">
+          <Link href="/login">
+            <Button variant="ghost" size="sm">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Login
+            </Button>
+          </Link>
         </div>
 
-        {/* Quick Stats */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-          {quickStats.map((stat) => (
-              <Card key={stat.title} className={stat.bgColor}>
-                <CardContent className="flex items-center p-6">
-                  <stat.icon className={`h-8 w-8 ${stat.color} mr-4`} />
-                  <div>
-                    <p className="text-sm font-medium text-muted-foreground">{stat.title}</p>
-                    <p className="text-2xl font-bold">{stat.value}</p>
-                  </div>
-                </CardContent>
-              </Card>
-          ))}
+        <div className="mb-6 flex items-center space-x-2">
+          <Shield className="h-8 w-8 text-primary" />
+          <span className="text-2xl font-bold text-primary">GROWMOR Admin</span>
         </div>
 
-        {/* Charts and Tables */}
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-          <Card className="col-span-4">
-            <CardHeader>
-              <CardTitle>Sales Overview</CardTitle>
-              <CardDescription>Revenue and orders over the last 12 months</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <AnalyticsChart />
-            </CardContent>
-          </Card>
-
-          <Card className="col-span-3">
-            <CardHeader>
-              <CardTitle>Top Products</CardTitle>
-              <CardDescription>Best selling plants this month</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <TopProducts />
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Recent Orders */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Orders</CardTitle>
-            <CardDescription>Latest orders from your customers</CardDescription>
+        <Card className="w-full max-w-md">
+          <CardHeader className="text-center">
+            <CardTitle className="text-2xl flex items-center justify-center">
+              <Shield className="h-6 w-6 mr-2" />
+              Admin Access
+            </CardTitle>
+            <CardDescription>Enter your admin credentials to access the admin panel</CardDescription>
           </CardHeader>
-          <CardContent>
-            <RecentOrders />
+          <CardContent className="space-y-4">
+            {error && <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive">{error}</div>}
+
+            <form onSubmit={handleAdminLogin} className="space-y-4">
+              <div className="space-y-2">
+                <Label htmlFor="admin-email">Admin Email</Label>
+                <Input
+                    id="admin-email"
+                    type="email"
+                    placeholder="admin@growmor.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="admin-password">Admin Password</Label>
+                <Input
+                    id="admin-password"
+                    type="password"
+                    placeholder="Enter admin password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    required
+                />
+              </div>
+              <Button type="submit" className="w-full" disabled={isLoading}>
+                {isLoading ? "Authenticating..." : "Access Admin Panel"}
+              </Button>
+            </form>
+
+            <div className="text-center text-xs text-muted-foreground">
+              <p>Demo credentials:</p>
+              <p>Email: admin@growmor.com</p>
+              <p>Password: admin123</p>
+            </div>
           </CardContent>
         </Card>
       </div>

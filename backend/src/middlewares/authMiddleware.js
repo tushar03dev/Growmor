@@ -4,7 +4,6 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const authMiddleware = (req, res, next) => {
-  // Get token from headers
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
@@ -14,12 +13,18 @@ const authMiddleware = (req, res, next) => {
   const token = authHeader.split(' ')[1];
 
   try {
-    req.user = jwt.verify(token, process.env.JWT_SECRET);
+    const decoded = jwt.verify(token, process.env.JWT_SECRET);
+    req.user = {
+      id: decoded.id,
+      email: decoded.email,
+      isAdmin: decoded.isAdmin || false
+    };
     next();
   } catch (err) {
     console.error(err);
     return res.status(401).json({ message: 'Invalid or expired token' });
   }
 };
+
 
 export default authMiddleware;
