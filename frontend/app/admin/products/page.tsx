@@ -605,7 +605,7 @@ export default function AdminProductsPage() {
                         id="dimensions"
                         value={formData.dimensions}
                         onChange={(e) => setFormData((prev) => ({ ...prev, dimensions: e.target.value }))}
-                        placeholder="e.g., 24\" x 18\""
+                        placeholder='e.g., 24\" x 18\"'
                     />
                   </div>
 

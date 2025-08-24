@@ -2,9 +2,7 @@
 
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { ThemeToggle } from "@/components/theme-toggle"
 import {
     Package,
     ShoppingCart,
@@ -13,7 +11,6 @@ import {
     FileText,
     AlertTriangle,
     CheckCircle,
-    LogOut,
     Shield,
 } from "lucide-react"
 import { AnalyticsChart } from "@/components/analytics-chart"
@@ -26,7 +23,7 @@ export default function AdminDashboard() {
     const router = useRouter()
 
     useEffect(() => {
-        const adminAuth = localStorage.getItem("adminAuthenticated")
+        const adminAuth = localStorage.getItem("adminAuth")
         if (adminAuth === "true") {
             setIsAuthenticated(true)
         } else {
@@ -34,11 +31,6 @@ export default function AdminDashboard() {
         }
         setIsLoading(false)
     }, [router])
-
-    const handleLogout = () => {
-        localStorage.removeItem("adminAuthenticated")
-        router.push("/admin")
-    }
 
     if (isLoading) {
         return (
@@ -52,7 +44,7 @@ export default function AdminDashboard() {
     }
 
     if (!isAuthenticated) {
-        return null // Will redirect to admin login
+        return null
     }
 
     const stats = [
@@ -122,22 +114,7 @@ export default function AdminDashboard() {
     ]
 
     return (
-        <div className="min-h-screen bg-muted/40">
-            <header className="border-b bg-background">
-                <div className="container flex h-16 items-center justify-between">
-                    <div className="flex items-center space-x-4">
-                        <Shield className="h-6 w-6 text-primary" />
-                        <h1 className="text-2xl font-bold text-primary">GROWMOR Admin Panel</h1>
-                    </div>
-                    <div className="flex items-center space-x-4">
-                        <ThemeToggle />
-                        <Button variant="outline" size="sm" onClick={handleLogout}>
-                            <LogOut className="h-4 w-4 mr-2" />
-                            Logout
-                        </Button>
-                    </div>
-                </div>
-            </header>
+        <div className="min-h-screen bg-muted/40 p-4">
 
             <div className="container py-8">
                 <div className="space-y-6">
