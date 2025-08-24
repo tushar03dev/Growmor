@@ -19,7 +19,7 @@ type AuthContextType = {
   login: (email: string, password: string) => Promise<boolean>
   signup: (name: string, email: string, password: string) => Promise<boolean>
   logout: () => void
-  verifyOtp: (token: string, otp: string) => Promise<boolean>
+  verifyOtp: (otp: string) => Promise<boolean>
   isAdmin: boolean
 }
 
@@ -80,12 +80,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signup = async (name: string, email: string, password: string): Promise<boolean> => {
     try {
       const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/auth/signup`, { name, email, password });
-      if (response.data) {
+      if (response.data.success) {
         // Temporarily store user data
         tempUser = { name, email};
-        alert("Otp sent successfully");
-
-        localStorage.setItem("otpToken", JSON.stringify(response.data.token));
+        alert("Otp sent successfully")
         return true
       } else{
         console.error('Otp not sent. Please try again.');
@@ -97,11 +95,15 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const verifyOtp = async (otpToken: string, otp: string): Promise<boolean> => {
+  const verifyOtp = async ( otp: string): Promise<boolean> => {
     try {
-      const response = await axios.post(`${process.env.NEXT_API_URL}/auth/verify`, {otpToken, otp });
+      const {email} = tempUser;
+      if (!email) {
+        console.error("Email is required for otp verification")
+      }
+      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/otp/verify`, { email, otp });
 
-      if (response.data) {
+      if (response.data.success) {
         localStorage.setItem('token', JSON.stringify(response.data.token));
 
         // Mock user data

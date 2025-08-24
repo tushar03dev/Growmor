@@ -5,6 +5,7 @@ import connectDB from "./config/db.js";
 import otpRoutes from "./routes/otpRoutes.js";
 import {connectRedis} from "./config/redis.js";
 import bodyParser from 'body-parser'
+import morgan from 'morgan';
 
 // Load environment variables
 const env = process.env.NODE_ENV;
@@ -13,12 +14,13 @@ dotenv.config({ path: `.env.${env}` });
 // Initialize Express app
 const app = express();
 
+app.use(morgan('dev'));
+
 // Middleware
 app.use(cors({
   origin: process.env.FRONTEND_ORIGIN,
   credentials: true,
 }));
-app.options('*', cors());
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 

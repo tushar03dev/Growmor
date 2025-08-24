@@ -18,7 +18,6 @@ function flattenZodError(err) {
 dotenv.config();
 
 export const signUp = async (req, res, next) => {
-    console.log("hiiiiiiii");
     const createPayload = req.body;
     const parsedPayload = signUpPayload.safeParse(createPayload);
 
