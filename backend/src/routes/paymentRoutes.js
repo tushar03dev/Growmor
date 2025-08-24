@@ -8,5 +8,4 @@
 // router.post('/payments/confirm', authMiddleware, paymentController.confirmPayment);
 // router.get('/payments/history', authMiddleware, paymentController.getPaymentHistory);
 
-
 // module.exports = router;

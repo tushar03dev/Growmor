@@ -1,15 +1,16 @@
-const express = require('express');
+import express from "express";
+
+import categoryController from "../controllers/categoryController.js";
+import authMiddleware from "../middlewares/authMiddleware.js";
+import isAdmin from "../middlewares/isAdmin.js";
+
 const router = express.Router();
 
-const categoryController = require('../controllers/categoryController.js');
-const authMiddleware = require("../middlewares/authMiddleware.js");
-const isAdmin = require("../middlewares/isAdmin.js");
-
 // Category Routes
-router.get('/', categoryController.getAllCategories);
-router.get('/:id/plants', categoryController.getPlantsByCategory);
-router.post('/',  isAdmin, categoryController.createCategory);    
-router.put('/:id',  isAdmin, categoryController.updateCategory); 
-router.delete('/:id', isAdmin, categoryController.deleteCategory); 
+router.get("/", categoryController.getAllCategories);
+router.get("/:id/plants", categoryController.getPlantsByCategory);
+router.post("/", categoryController.createCategory);
+router.put("/:id", isAdmin, categoryController.updateCategory);
+router.delete("/:id", isAdmin, categoryController.deleteCategory);
 
-module.exports = router;
+export default router;
