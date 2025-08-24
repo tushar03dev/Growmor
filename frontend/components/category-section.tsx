@@ -8,7 +8,7 @@ import axios from "axios";
 export type Category = {
   _id: string;
   name: string;
-  description: string;
+  description?: string;
   imageUrl?: string;
 };
 
@@ -16,17 +16,55 @@ export function CategorySection() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
 
+  // ✅ static fallback categories
+  const staticCategories: Category[] = [
+    {
+      _id: "static-1",
+      name: "Indoor Plants",
+      description: "Perfect for homes and offices",
+      imageUrl: "/Monstera_Deliciosa.webp",
+    },
+    {
+      _id: "static-2",
+      name: "Outdoor Plants",
+      description: "Ideal for gardens and balconies",
+      imageUrl: "/Hero_slider2.jpg",
+    },
+    {
+      _id: "static-3",
+      name: "Succulents",
+      description: "Low-maintenance and trendy",
+      imageUrl: "/niche garage.jpg",
+    },
+  ];
+
+  // ✅ multiple fallback images
+  const fallbackImages = [
+    "/Monstera_Deliciosa.webp",
+    "/Hero_slider2.jpg",
+    "/niche garage.jpg",
+  ];
+
   useEffect(() => {
     axios
-      .get("http://localhost:5000/category")
-      .then((res) => setCategories(res.data.slice(0, 6)))
-      .catch((err) => console.error(err))
+      .get(`${process.env.NEXT_PUBLIC_API_URL}/category`)
+      .then((res) => {
+        if (res.data && res.data.length > 0) {
+          setCategories(res.data.slice(0, 3));
+        } else {
+          // fallback if backend returns empty
+          setCategories(staticCategories);
+        }
+      })
+      .catch((err) => {
+        console.error(err);
+        // fallback if API fails
+        setCategories(staticCategories);
+      })
       .finally(() => setLoading(false));
   }, []);
 
   if (loading) return <p className="text-center py-8">Loading categories...</p>;
-
-  const defaultImage = "/placeholder.svg?height=400&width=600";
 
   return (
     <section className="py-12 bg-muted/50">
@@ -39,7 +77,7 @@ export function CategorySection() {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {categories.map((cat) => (
+          {categories.map((cat, index) => (
             <div
               key={cat._id}
               className="relative rounded-lg overflow-hidden h-64 group"
@@ -48,7 +86,10 @@ export function CategorySection() {
               <div
                 className="absolute inset-0 bg-cover bg-center z-0"
                 style={{
-                  backgroundImage: `url('${cat.imageUrl || defaultImage}')`,
+                  backgroundImage: `url('${
+                    cat.imageUrl ||
+                    fallbackImages[index % fallbackImages.length]
+                  }')`,
                 }}
               />
               <div className="absolute inset-0 flex flex-col items-center justify-center z-20 text-white">
