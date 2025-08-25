@@ -3,13 +3,16 @@ const { Schema } = mongoose;
 
 const AdminSchema = new Schema({
   email: { type: String, required: true, unique: true },
+  name: {type: String, required: true},
   password: { type: String, required: true },
+  authProvider: { type: String, enum: ["google", "apple", "local"], default: 'local' }
 });
 
 const UserSchema = new Schema({
   name: { type: String, required: true },
   email: { type: String, required: true, unique: true },
   password: { type: String },
+  authProvider: { type: String, enum: ["google", "apple", "local"], default: 'local' },
   googleId: { type: String, unique: true, sparse: true },
   cart: { type: Schema.Types.ObjectId, ref: "Cart" },
   orders: [{ type: Schema.Types.ObjectId, ref: "Order" }],

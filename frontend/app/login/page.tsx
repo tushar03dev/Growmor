@@ -81,60 +81,11 @@ export default function LoginPage() {
   }
 
   return (
-      <div className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-4">
-        <div className="absolute right-4 top-4">
-          <ThemeToggle />
-        </div>
-        <Link href="/" className="mb-4 flex items-center space-x-2">
-          <span className="text-2xl font-bold text-primary">GROWMOR</span>
-        </Link>
+      <div className="flex min-h-screen flex-col items-center justify-center bg-muted/40 p-2">
 
-        {isAdminMode ? (
-            <Card className="w-full max-w-sm">
-              <CardHeader className="space-y-1">
-                <div className="flex items-center space-x-2">
-                  <Button variant="ghost" size="sm" onClick={() => setIsAdminMode(false)} className="p-1">
-                    <ArrowLeft className="h-4 w-4" />
-                  </Button>
-                  <CardTitle className="text-xl">Admin Login</CardTitle>
-                </div>
-                <CardDescription>Enter admin credentials to access the admin panel</CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                {error && <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive">{error}</div>}
-
-                <form onSubmit={handleAdminLogin} className="space-y-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="admin-email">Admin Email</Label>
-                    <Input
-                        id="admin-email"
-                        type="email"
-                        placeholder="admin@growmor.com"
-                        value={adminEmail}
-                        onChange={(e) => setAdminEmail(e.target.value)}
-                        required
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="admin-password">Admin Password</Label>
-                    <Input
-                        id="admin-password"
-                        type="password"
-                        value={adminPassword}
-                        onChange={(e) => setAdminPassword(e.target.value)}
-                        required
-                    />
-                  </div>
-                  <Button type="submit" className="w-full" disabled={isLoading}>
-                    {isLoading ? "Logging in..." : "Access Admin Panel"}
-                  </Button>
-                </form>
-              </CardContent>
-            </Card>
-        ) : (
             <Card className="w-full max-w-sm">
               <CardHeader>
-                <CardTitle className="text-2xl">Login</CardTitle>
+                <CardTitle className="text-2xl text-center">Login</CardTitle>
                 <CardDescription>Enter your email and password to access your account</CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
@@ -193,18 +144,9 @@ export default function LoginPage() {
                     Sign up
                   </Link>
                 </div>
-                <div className="text-center text-sm">
-                  Admin?{" "}
-                  <button
-                      onClick={() => setIsAdminMode(true)}
-                      className="text-primary underline underline-offset-4 hover:text-primary/90"
-                  >
-                    Access Admin Panel
-                  </button>
-                </div>
+
               </CardFooter>
             </Card>
-        )}
       </div>
   )
 }
