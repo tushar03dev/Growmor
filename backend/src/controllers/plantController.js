@@ -102,14 +102,14 @@ const createPlant = async (req, res) => {
       message: "Missing required fields: name, description, price, categoryId",
     });
 
-  console.log("req.body.sale:", req.body.sale);
-  if (req.body.sale && req.body.salePrice) {
-    return res
-      .status(400)
-      .json({ message: "Sale price required when sale is active" });
+  if (req.body.sale === "true" || req.body.sale === true) {
+    if (!req.body.salePrice) {
+      return res
+        .status(400)
+        .json({ message: "Sale price is required when sale is active" });
+    }
   }
   let imageData = null;
-
   if (req.file) {
     const s3Key = `plants/${Date.now()}_${req.file.originalname}`;
     try {
