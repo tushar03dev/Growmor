@@ -95,21 +95,19 @@ const createPlant = async (req, res) => {
     isBestSeller,
   } = req.body;
 
-  console.log("Creating plant with data:", req.body);
-
   if (!name || !description || !price || !categoryId)
     return res.status(400).json({
       message: "Missing required fields: name, description, price, categoryId",
     });
 
-  console.log("req.body.sale:", req.body.sale);
-  if (req.body.sale && req.body.salePrice) {
-    return res
-      .status(400)
-      .json({ message: "Sale price required when sale is active" });
+  if (req.body.sale === "true" || req.body.sale === true) {
+    if (!req.body.salePrice) {
+      return res
+        .status(400)
+        .json({ message: "Sale price is required when sale is active" });
+    }
   }
   let imageData = null;
-
   if (req.file) {
     const s3Key = `plants/${Date.now()}_${req.file.originalname}`;
     try {
@@ -164,15 +162,37 @@ const createPlant = async (req, res) => {
 const updatePlant = async (req, res) => {
   try {
     const { id } = req.params;
-    if (!id.match(/^[0-9a-fA-F]{24}$/))
+    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
       return res.status(400).json({ message: "Invalid plant ID" });
-
+    }
+    console.log("Headers:", req.headers["content-type"]);
+    console.log("Files:", req.file);
+    console.log("Raw body keys:", Object.keys(req.body));
+    console.log("Update data:", req.body);
     let data = { ...req.body };
+
+    // ✅ Number fields
     if (data.price) data.price = parseFloat(data.price);
     if (data.discountPercentage)
       data.discountPercentage = parseFloat(data.discountPercentage);
+    if (data.stock) data.stock = parseInt(data.stock);
+    if (data.salePrice) data.salePrice = parseFloat(data.salePrice);
 
-    // If updating image
+    // ✅ Boolean fields
+    if (data.sale !== undefined)
+      data.sale = data.sale === "true" || data.sale === true;
+
+    if (data.featured !== undefined)
+      data.featured = data.featured === "true" || data.featured === true;
+
+    if (data.isTrending !== undefined)
+      data.isTrending = data.isTrending === "true" || data.isTrending === true;
+
+    if (data.isBestSeller !== undefined)
+      data.isBestSeller =
+        data.isBestSeller === "true" || data.isBestSeller === true;
+
+    // ✅ If updating image
     if (req.file) {
       const s3Key = `plants/${Date.now()}_${req.file.originalname}`;
       await uploadToS3(
@@ -194,10 +214,12 @@ const updatePlant = async (req, res) => {
     const plant = await Plant.findByIdAndUpdate(id, data, {
       new: true,
     }).populate("categoryId");
+
     if (!plant) return res.status(404).json({ message: "Plant not found" });
 
     res.json(await withImageUrl(plant));
   } catch (err) {
+    console.error("❌ Error updating plant:", err);
     res.status(500).json({ message: "Error updating plant" });
   }
 };
