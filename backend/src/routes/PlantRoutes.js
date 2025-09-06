@@ -2,7 +2,7 @@ import express from "express";
 import plantController from "../controllers/plantController.js";
 import multer from "multer";
 
-// Middlewares (notice the `.js` at the end 👇)
+// Middlewares
 import isAdmin from "../middlewares/isAdmin.js";
 import authMiddleware from "../middlewares/authMiddleware.js";
 
@@ -18,9 +18,7 @@ router.get("/:id", plantController.getPlantById);
 
 // Admin-only routes
 router.post("/", upload.single("plant_image"), plantController.createPlant);
-
 router.put("/:id", upload.single("plant_image"), plantController.updatePlant);
-
 router.delete("/:id", plantController.deletePlant);
 
 export default router;

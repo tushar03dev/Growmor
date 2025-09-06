@@ -91,16 +91,16 @@ export default function LoginPage() {
               <CardContent className="space-y-4">
                 {error && <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive">{error}</div>}
 
-                <OAuthButtons onOAuthLogin={handleOAuthLogin} isLoading={isLoading} />
+                {/*<OAuthButtons onOAuthLogin={handleOAuthLogin} isLoading={isLoading} />*/}
 
-                <div className="relative">
-                  <div className="absolute inset-0 flex items-center">
-                    <Separator />
-                  </div>
-                  <div className="relative flex justify-center text-xs uppercase">
-                    <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-                  </div>
-                </div>
+                {/*<div className="relative">*/}
+                {/*  <div className="absolute inset-0 flex items-center">*/}
+                {/*    <Separator />*/}
+                {/*  </div>*/}
+                {/*  <div className="relative flex justify-center text-xs uppercase">*/}
+                {/*    <span className="bg-background px-2 text-muted-foreground">Or continue with</span>*/}
+                {/*  </div>*/}
+                {/*</div>*/}
 
                 <form onSubmit={handleLogin} className="space-y-4">
                   <div className="space-y-2">

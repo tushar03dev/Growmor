@@ -93,20 +93,20 @@ export default function SignupPage() {
         <CardContent className="space-y-4">
           {error && <div className="rounded-md bg-destructive/15 p-3 text-sm text-destructive">{error}</div>}
 
-          {!showOtpInput && (
-            <>
-              <OAuthButtons onOAuthLogin={handleOAuthLogin} isLoading={isLoading} />
+          {/*{!showOtpInput && (*/}
+          {/*  <>*/}
+          {/*    <OAuthButtons onOAuthLogin={handleOAuthLogin} isLoading={isLoading} />*/}
 
-              <div className="relative">
-                <div className="absolute inset-0 flex items-center">
-                  <Separator />
-                </div>
-                <div className="relative flex justify-center text-xs uppercase">
-                  <span className="bg-background px-2 text-muted-foreground">Or continue with</span>
-                </div>
-              </div>
-            </>
-          )}
+          {/*    <div className="relative">*/}
+          {/*      <div className="absolute inset-0 flex items-center">*/}
+          {/*        <Separator />*/}
+          {/*      </div>*/}
+          {/*      <div className="relative flex justify-center text-xs uppercase">*/}
+          {/*        <span className="bg-background px-2 text-muted-foreground">Or continue with</span>*/}
+          {/*      </div>*/}
+          {/*    </div>*/}
+          {/*  </>*/}
+          {/*)}*/}
 
           <form onSubmit={handleSignup} className="space-y-4">
             {!showOtpInput ? (
