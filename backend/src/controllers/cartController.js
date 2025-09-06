@@ -1,6 +1,6 @@
 import Cart, {CartItem} from '../models/model.js';
 
-export const getCart = async (req, res) => {
+const getCart = async (req, res) => {
   try {
     const userId = req.user.id;
     const cart = await Cart.findOne({ userId }).populate({
@@ -13,7 +13,7 @@ export const getCart = async (req, res) => {
   }
 };
 
-export const addItemToCart = async (req, res) => {
+const addItemToCart = async (req, res) => {
   const userId = req.user.id;
   const { plantId, productId, quantity } = req.body;
 
@@ -56,7 +56,7 @@ export const addItemToCart = async (req, res) => {
   }
 };
 
-export const updateCartItem = async (req, res) => {
+const updateCartItem = async (req, res) => {
   try {
     const { itemId } = req.params;
     const { quantity } = req.body;
@@ -67,7 +67,7 @@ export const updateCartItem = async (req, res) => {
   }
 };
 
-export const removeItemFromCart = async (req, res) => {
+const removeItemFromCart = async (req, res) => {
   try {
     const { itemId } = req.params;
     await CartItem.findByIdAndDelete(itemId);
@@ -77,7 +77,7 @@ export const removeItemFromCart = async (req, res) => {
   }
 };
 
-export const clearCart = async (req, res) => {
+const clearCart = async (req, res) => {
   try {
     const userId = req.user.id;
     const cart = await Cart.findOne({ userId });
@@ -91,3 +91,11 @@ export const clearCart = async (req, res) => {
     res.status(500).json({ message: 'Server Error', error: error.message });
   }
 };
+
+export default {
+  getCart,
+  addItemToCart,
+  updateCartItem,
+  removeItemFromCart,
+  clearCart
+}
