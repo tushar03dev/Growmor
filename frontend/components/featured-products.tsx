@@ -89,46 +89,48 @@ export function FeaturedProducts({
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchProducts = async () => {
-      try {
-        setLoading(true);
+    // const fetchProducts = async () => {
+    //   try {
+    //     setLoading(true);
+    //
+    //     let url = "";
+    //     if (mode === "trending") {
+    //       url = `${process.env.NEXT_PUBLIC_API_URL}/plants/trending`;
+    //     } else if (mode === "featured") {
+    //       url = `${process.env.NEXT_PUBLIC_API_URL}/plants/featured`;
+    //     } else if (mode === "sale") {
+    //       url = `${process.env.NEXT_PUBLIC_API_URL}/plants/sale`;
+    //     }
+    //
+    //     if (!url) {
+    //       console.error("No API URL found for mode:", mode);
+    //       setProducts(dummyProducts.slice(0, limit));
+    //       return;
+    //     }
+    //
+    //     const res = await fetch(url, { cache: "no-store" });
+    //
+    //     if (!res.ok) throw new Error("Failed to fetch products");
+    //
+    //     const data: Product[] = await res.json();
+    //     if (data && data.length > 0) {
+    //       setProducts(data.slice(0, limit));
+    //     } else {
+    //       // ✅ fallback if backend returns empty
+    //       setProducts(dummyProducts.slice(0, limit));
+    //     }
+    //   } catch (error) {
+    //     console.error("Error fetching products:", error);
+    //     // ✅ fallback if API fails
+    //     setProducts(dummyProducts.slice(0, limit));
+    //   } finally {
+    //     setLoading(false);
+    //   }
+    // };
+    setProducts(dummyProducts.slice(0, limit));
+    setLoading(false);
 
-        let url = "";
-        if (mode === "trending") {
-          url = `${process.env.NEXT_PUBLIC_API_URL}/plants/trending`;
-        } else if (mode === "featured") {
-          url = `${process.env.NEXT_PUBLIC_API_URL}/plants/featured`;
-        } else if (mode === "sale") {
-          url = `${process.env.NEXT_PUBLIC_API_URL}/plants/sale`;
-        }
-
-        if (!url) {
-          console.error("No API URL found for mode:", mode);
-          setProducts(dummyProducts.slice(0, limit));
-          return;
-        }
-
-        const res = await fetch(url, { cache: "no-store" });
-
-        if (!res.ok) throw new Error("Failed to fetch products");
-
-        const data: Product[] = await res.json();
-        if (data && data.length > 0) {
-          setProducts(data.slice(0, limit));
-        } else {
-          // ✅ fallback if backend returns empty
-          setProducts(dummyProducts.slice(0, limit));
-        }
-      } catch (error) {
-        console.error("Error fetching products:", error);
-        // ✅ fallback if API fails
-        setProducts(dummyProducts.slice(0, limit));
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchProducts();
+    //fetchProducts();
   }, [mode, limit]);
 
   return (

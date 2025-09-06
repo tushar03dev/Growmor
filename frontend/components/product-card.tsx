@@ -9,6 +9,8 @@ import { ShoppingCart } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useCart } from "@/components/cart-provider";
 import { Badge } from "@/components/ui/badge";
+import { toast } from "@/components/ui/use-toast";
+import { useRouter } from "next/navigation";
 
 export type Product = {
   _id: string;
@@ -24,7 +26,7 @@ export type Product = {
     _id: string;
     name: string;
     description: string;
-    plants: any[];
+    plants: never[];
     __v: number;
   };
   stock: number;
@@ -39,17 +41,21 @@ interface ProductCardProps {
 export function ProductCard({ product }: ProductCardProps) {
   const [isHovered, setIsHovered] = useState(false);
   const { addItem } = useCart();
+  const router = useRouter();
 
-  const handleAddToCart = (e: React.MouseEvent) => {
+  const handleAddToCart = async(e: React.MouseEvent, product: Product) => {
     e.preventDefault();
     e.stopPropagation();
-    addItem({
-      id: product._id,
-      name: product.name,
-      price: product.sale ? product.salePrice || product.price : product.price,
-      image: product.image.imageUrl,
-    });
+    try {
+      const success = await addItem(product._id,1);
+      if(success) {
+        router.push("/cart");
+      }
+    } catch (error) {
+      console.error("Error in handleAddToCart:", error);
+    }
   };
+
 
   return (
     <Link href={`/plants/${product._id}`}>
@@ -83,10 +89,14 @@ export function ProductCard({ product }: ProductCardProps) {
               isHovered ? "opacity-100" : "opacity-0"
             }`}
           >
-            <Button onClick={handleAddToCart} className="mx-2">
+            <Button
+                onClick={(e) => handleAddToCart(e, product)}
+                className="mx-2"
+            >
               <ShoppingCart className="mr-2 h-4 w-4" />
               Add to Cart
             </Button>
+
           </div>
         </div>
 

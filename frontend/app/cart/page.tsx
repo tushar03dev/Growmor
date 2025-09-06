@@ -5,10 +5,44 @@ import { Minus, Plus, Trash2, ShoppingBag } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { useCart } from "@/components/cart-provider"
 import { useAuth } from "@/components/auth-provider"
+import {useEffect} from "react";
+import axios from "axios";
+import {toast} from "@/components/ui/use-toast";
 
 export default function CartPage() {
-  const { items, updateQuantity, removeItem, totalPrice, totalItems } = useCart()
+  const { setItems, items, updateQuantity, removeItem, totalPrice, totalItems } = useCart()
   const { user } = useAuth()
+  const API_URL = process.env.NEXT_PUBLIC_API_URL;
+
+  useEffect(() => {
+    if (!user) {
+      setItems([]);
+      return; // no user or no token, no cart fetch
+    }
+
+    const fetchCart = async () => {
+      try {
+        const token = localStorage.getItem("token");
+        if (!token) {
+          console.error("Token not found");
+          return false;
+        }
+        const response = await axios.get(`${API_URL}/cart`, {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          }
+        });
+        setItems(response.data.items ?? []);
+        return true;
+      } catch (error) {
+        console.error("Failed to fetch cart:", error);
+        toast({title: "Error", description: "Failed to load cart from server"});
+        return true;
+      }
+    };
+
+    fetchCart();
+  }, [user]);
 
   if (items.length === 0) {
     return (
@@ -36,16 +70,16 @@ export default function CartPage() {
             <div key={item.id} className="flex items-center gap-4 p-4 border rounded-lg">
               <div className="relative w-20 h-20 flex-shrink-0">
                 <Image
-                  src={item.image || "/placeholder.svg"}
-                  alt={item.name}
+                  src={item.plant.image?.imageUrl  || "/placeholder.svg"}
+                  alt={item.plant.name}
                   fill
                   className="object-cover rounded-md"
                 />
               </div>
 
               <div className="flex-1">
-                <h3 className="font-medium">{item.name}</h3>
-                <p className="text-primary font-semibold">${item.price.toFixed(2)}</p>
+                <h3 className="font-medium">{item.plant.name}</h3>
+                <p className="text-primary font-semibold">${item.plant.price.toFixed(2)}</p>
               </div>
 
               <div className="flex items-center gap-2">
@@ -64,7 +98,7 @@ export default function CartPage() {
               </div>
 
               <div className="text-right">
-                <p className="font-semibold">${(item.price * item.quantity).toFixed(2)}</p>
+                <p className="font-semibold">${(item.plant.price * item.quantity).toFixed(2)}</p>
                 <Button
                   variant="ghost"
                   size="sm"

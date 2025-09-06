@@ -1,124 +1,201 @@
-"use client"
+"use client";
 
-import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
-import { toast } from "@/components/ui/use-toast"
+import {createContext, useContext, useState, useEffect, type ReactNode} from "react";
+import axios from "axios";
+import {toast} from "@/components/ui/use-toast";
+import {useAuth} from "@/components/auth-provider"; // Adjust import path accordingly
+
+export type PlantImage = {
+    imageUrl?: string;
+    key?: string;
+    contentType?: string;
+    imageName?: string;
+    size?: number;
+};
+
+export type Plant = {
+    _id: string;
+    name: string;
+    description: string;
+    price: number;
+    stock: number;
+    image?: PlantImage;
+    categoryId: string; // could also be { _id: string; name: string } if you populate
+    discountPercentage?: number;
+    sale?: boolean;
+    salePrice?: number;
+    featured?: boolean;
+    isTrending?: boolean;
+    isBestSeller?: boolean;
+    createdAt: string;
+    cartItems?: string[];   // ObjectIds (or CartItem[])
+    orderItems?: string[];  // ObjectIds (or OrderItem[])
+    reviews?: string[];     // ObjectIds (or Review[])
+    viewLogs?: string[];    // ObjectIds (or ViewLog[])
+};
+
 
 export type CartItem = {
-  id: string
-  name: string
-  price: number
-  image: string
-  quantity: number
-}
+    id: string;      // cart item id
+    quantity: number;
+    plant: Plant;    // full plant details
+};
 
 type CartContextType = {
-  items: CartItem[]
-  addItem: (item: Omit<CartItem, "quantity"> & { quantity?: number }) => void
-  removeItem: (id: string) => void
-  updateQuantity: (id: string, quantity: number) => void
-  clearCart: () => void
-  totalItems: number
-  totalPrice: number
-}
+    items: CartItem[];
+    setItems: (carts: CartItem[]) => void;
+    addItem: (id: string, quantity: number) => Promise<boolean>;
+    removeItem: (id: string) => Promise<boolean>;
+    updateQuantity: (id: string, quantity: number) => Promise<boolean>;
+    clearCart: () => Promise<boolean>;
+    totalItems: number;
+    totalPrice: number;
+};
 
-const CartContext = createContext<CartContextType | undefined>(undefined)
+const CartContext = createContext<CartContextType | undefined>(undefined);
 
-export function CartProvider({ children }: { children: ReactNode }) {
-  const [items, setItems] = useState<CartItem[]>([])
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-  // Load cart from localStorage on mount
-  useEffect(() => {
-    try {
-      const savedCart = localStorage.getItem("cart")
-      if (savedCart) {
-        setItems(JSON.parse(savedCart))
-      }
-    } catch (error) {
-      console.error("Failed to load cart:", error)
-    }
-  }, [])
+export function CartProvider({children}: { children: ReactNode }) {
+    const {user} = useAuth();
+    const [items, setItems] = useState<CartItem[]>([]);
 
-  // Save cart to localStorage whenever it changes
-  useEffect(() => {
-    localStorage.setItem("cart", JSON.stringify(items))
-  }, [items])
 
-  const addItem = (newItem: Omit<CartItem, "quantity"> & { quantity?: number }) => {
-    setItems((currentItems) => {
-      const existingItemIndex = currentItems.findIndex((item) => item.id === newItem.id)
+    const addItem = async (id: string, quantity: number) => {
+        try {
 
-      if (existingItemIndex > -1) {
-        // Item exists, update quantity
-        const updatedItems = [...currentItems]
-        updatedItems[existingItemIndex].quantity += newItem.quantity || 1
-        toast({
-          title: "Cart updated",
-          description: `${newItem.name} quantity increased`,
-        })
-        return updatedItems
-      } else {
-        // Item doesn't exist, add new item
-        toast({
-          title: "Added to cart",
-          description: `${newItem.name} added to your cart`,
-        })
-        return [...currentItems, { ...newItem, quantity: newItem.quantity || 1 }]
-      }
-    })
-  }
+            const token = localStorage.getItem("token");
+            if (!token) {
+                console.error("Token not found");
+                return false;
+            }
 
-  const removeItem = (id: string) => {
-    setItems((currentItems) => {
-      const itemToRemove = currentItems.find((item) => item.id === id)
-      if (itemToRemove) {
-        toast({
-          title: "Removed from cart",
-          description: `${itemToRemove.name} removed from your cart`,
-        })
-      }
-      return currentItems.filter((item) => item.id !== id)
-    })
-  }
+            const response = await axios.post(
+                `${API_URL}/cart`,
+                {plantId: id, quantity},
+                {
+                    headers: {
+                        Authorization: `Bearer ${token}`
+                    }
+                });
 
-  const updateQuantity = (id: string, quantity: number) => {
-    if (quantity < 1) return
 
-    setItems((currentItems) => currentItems.map((item) => (item.id === id ? { ...item, quantity } : item)))
-  }
+            setItems(response.data.items ?? []);
 
-  const clearCart = () => {
-    setItems([])
-    toast({
-      title: "Cart cleared",
-      description: "All items have been removed from your cart",
-    })
-  }
+            toast({
+                title: "Added to cart",
+                description: `${response.data.plantId.name} added to your cart`,
+            });
 
-  const totalItems = items.reduce((total, item) => total + item.quantity, 0)
+            return true;
 
-  const totalPrice = items.reduce((total, item) => total + item.price * item.quantity, 0)
 
-  return (
-    <CartContext.Provider
-      value={{
-        items,
-        addItem,
-        removeItem,
-        updateQuantity,
-        clearCart,
-        totalItems,
-        totalPrice,
-      }}
-    >
-      {children}
-    </CartContext.Provider>
-  )
+        } catch (error) {
+            console.error("Failed to add item to cart:", error);
+            toast({title: "Error", description: "Failed to add item to cart"});
+            return false;
+        }
+    };
+
+    const removeItem = async (id: string) => {
+        try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                console.error("Token not found");
+                return false;
+            }
+
+            const response = await axios.delete(`${API_URL}/cart/${id}`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            setItems(response.data);
+            toast({title: "Removed from cart", description: "Item removed from cart"});
+            return true;
+        } catch (error) {
+            console.error("Failed to remove item from cart:", error);
+            toast({title: "Error", description: "Failed to remove item from cart"});
+            return false;
+        }
+    };
+
+    const updateQuantity = async (id: string, quantity: number) => {
+        if (quantity < 1) return false;
+        try {
+
+            const token = localStorage.getItem("token");
+            if (!token) {
+                console.error("Token not found");
+                return false;
+            }
+
+            const response = await axios.put(`${API_URL}/cart/${id}`, {quantity}, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+
+            setItems(response.data);
+            return true;
+        } catch (error) {
+            console.error("Failed to update cart item quantity:", error);
+            toast({title: "Error", description: "Failed to update cart item quantity"});
+            return false;
+        }
+    };
+
+    const clearCart = async () => {
+        try {
+            const token = localStorage.getItem("token");
+            if (!token) {
+                console.error("Token not found");
+                return false;
+            }
+            const response = await axios.delete(`${API_URL}/cart`, {
+                headers: {
+                    Authorization: `Bearer ${token}`
+                }
+            });
+            setItems([]);
+            toast({
+                title: "Cart cleared",
+                description: "All items have been removed from your cart",
+            });
+            return true;
+        } catch (error) {
+            console.error("Failed to clear cart:", error);
+            toast({title: "Error", description: "Failed to clear cart"});
+            return false;
+        }
+    };
+
+    const totalItems = items.reduce((total, item) => total + item.quantity, 0);
+    const totalPrice = items.reduce((total, item) => total + item.plant.price * item.quantity, 0);
+
+    return (
+        <CartContext.Provider
+            value={{
+                items,
+                setItems,
+                addItem,
+                removeItem,
+                updateQuantity,
+                clearCart,
+                totalItems,
+                totalPrice,
+            }}
+        >
+            {children}
+        </CartContext.Provider>
+    );
 }
 
 export const useCart = () => {
-  const context = useContext(CartContext)
-  if (context === undefined) {
-    throw new Error("useCart must be used within a CartProvider")
-  }
-  return context
-}
+    const context = useContext(CartContext);
+    if (context === undefined) {
+        throw new Error("useCart must be used within a CartProvider");
+    }
+    return context;
+};

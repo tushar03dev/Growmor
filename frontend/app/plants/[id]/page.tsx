@@ -98,15 +98,17 @@ export default function PlantDetailPage() {
   const discountedPrice =
     product.price - (product.price * product.discountPercentage) / 100;
 
-  const handleAddToCart = () => {
-    addItem({
-      id: product._id,
-      name: product.name,
-      price: discountedPrice,
-      image: product.image.imageUrl,
-      quantity,
-    });
+  const handleAddToCart = async () => {
+    try {
+      const success = await addItem(product._id,quantity);
+      if(success) {
+        router.push("/cart");
+      }
+    } catch (error) {
+      console.error("Error in handleAddToCart:", error);
+    }
   };
+
 
   const handleBuyNow = () => {
     if (!user) {
