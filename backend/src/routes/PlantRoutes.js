@@ -19,8 +19,8 @@ router.get("/:id", plantController.getPlantById);
 // Admin-only routes
 router.post("/", upload.single("plant_image"), plantController.createPlant);
 
-router.put("/:id", authMiddleware, isAdmin, plantController.updatePlant);
+router.put("/:id", upload.single("plant_image"), plantController.updatePlant);
 
-router.delete("/:id", authMiddleware, isAdmin, plantController.deletePlant);
+router.delete("/:id", plantController.deletePlant);
 
 export default router;
