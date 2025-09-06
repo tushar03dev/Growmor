@@ -95,11 +95,19 @@ const createPlant = async (req, res) => {
     isBestSeller,
   } = req.body;
 
+  console.log("Creating plant with data:", req.body);
+
   if (!name || !description || !price || !categoryId)
     return res.status(400).json({
       message: "Missing required fields: name, description, price, categoryId",
     });
 
+  console.log("req.body.sale:", req.body.sale);
+  if (req.body.sale && req.body.salePrice) {
+    return res
+      .status(400)
+      .json({ message: "Sale price required when sale is active" });
+  }
   let imageData = null;
 
   if (req.file) {
@@ -132,14 +140,19 @@ const createPlant = async (req, res) => {
       name: name.trim(),
       description: description.trim(),
       price: parseFloat(price),
+      stock: req.body.stock ? parseInt(req.body.stock) : 0, // ✅ new
       categoryId,
       discountPercentage: discountPercentage
         ? parseFloat(discountPercentage)
         : 0,
+      sale: req.body.sale === "true" || req.body.sale === true, // ✅ new
+      salePrice: req.body.salePrice ? parseFloat(req.body.salePrice) : null, // ✅ new
+      featured: req.body.featured === "true" || req.body.featured === true, // ✅ new
       isTrending: isTrending === "true" || isTrending === true,
       isBestSeller: isBestSeller === "true" || isBestSeller === true,
-      image: imageData,
+      image: imageData, // imageData already holds key, mimetype, size, (and imageUrl if you set it above)
     });
+
     res.status(201).json(await withImageUrl(plant));
   } catch (e) {
     console.error("❌ Error creating plant:", e);
