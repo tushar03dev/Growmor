@@ -1,11 +1,11 @@
-// const express = require('express');
-// const router = express.Router();
+import express from 'express';
+import authMiddleware from "../middlewares/authMiddleware.js";
+import {createOrder} from "../controllers/orderController.js";
+import {verifyPayment} from "../controllers/paymentController.js";
+const router = express.Router();
 
-// const paymentController = require("../controllers/paymentController.js")
-// const authMiddleware = require("../middlewares/authMiddleware.js")
+router.post('/create-order', authMiddleware,createOrder);
 
-// router.post('/payments/create', authMiddleware, paymentController.createPaymentIntent);
-// router.post('/payments/confirm', authMiddleware, paymentController.confirmPayment);
-// router.get('/payments/history', authMiddleware, paymentController.getPaymentHistory);
+router.post('/verify', authMiddleware,verifyPayment);
 
-// module.exports = router;
+export default router;
