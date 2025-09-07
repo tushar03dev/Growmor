@@ -19,12 +19,18 @@ import {
 import { getAnalyticsData, getTopProducts, getAdminStats, type AdminStats, type Plant } from "@/lib/api/admin"
 import { useAuth } from "@/components/auth-provider"
 
+interface AnalyticsPoint {
+    date: string
+    revenue: number
+    orders: number
+}
+
 export default function AnalyticsPage() {
     const { isAdmin } = useAuth()
     const [timeRange, setTimeRange] = useState("monthly")
     const [stats, setStats] = useState<AdminStats | null>(null)
     const [topProducts, setTopProducts] = useState<Plant[]>([])
-    const [analyticsData, setAnalyticsData] = useState<any[]>([])
+    const [analyticsData, setAnalyticsData] = useState<AnalyticsPoint[]>([])
     const [isLoading, setIsLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
 
