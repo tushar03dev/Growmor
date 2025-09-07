@@ -170,17 +170,17 @@ export default function CheckoutPage() {
                 <div key={item.id} className="flex items-center gap-3">
                   <div className="relative w-12 h-12 flex-shrink-0">
                     <Image
-                      src={item.image || "/placeholder.svg"}
-                      alt={item.name}
+                      src={item.plant.image?.imageUrl  || "/placeholder.svg"}
+                      alt={item.plant.name}
                       fill
                       className="object-cover rounded"
                     />
                   </div>
                   <div className="flex-1">
-                    <p className="font-medium text-sm">{item.name}</p>
+                    <p className="font-medium text-sm">{item.plant.name}</p>
                     <p className="text-sm text-muted-foreground">Qty: {item.quantity}</p>
                   </div>
-                  <p className="font-semibold text-sm">${(item.price * item.quantity).toFixed(2)}</p>
+                  <p className="font-semibold text-sm">${(item.plant.price * item.quantity).toFixed(2)}</p>
                 </div>
               ))}
             </div>

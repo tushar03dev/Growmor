@@ -1,49 +1,63 @@
 import {Cart, CartItem, Plant} from '../models/model.js';
+import {getObjectURL} from "../utils/s3Utils.js";
 
-const getCart = async (req, res) => {
+// UTIL: Generates a signed S3 URL for a Plant image, if available
+const withImageUrl = async (plantDoc) => {
+  if (!plantDoc) return plantDoc;
+
+  // ensure plain object
+  const plant = typeof plantDoc.toObject === "function" ? plantDoc.toObject() : plantDoc;
+
+  if (!plant.image || !plant.image.key) return plant;
+
+  try {
+    const imageUrl = await getObjectURL(plant.image.key); // presigned URL
+    return {
+      ...plant,
+      image: {
+        ...plant.image,
+        imageUrl, // ✅ usable signed url
+      },
+    };
+  } catch (err) {
+    console.error("❌ Failed to generate signed URL for plant:", plant._id, err);
+    return plant; // fallback without URL
+  }
+};
+
+export const getCart = async (req, res) => {
   try {
     const userId = req.user.id;
 
     const cart = await Cart.findOne({ userId }).populate({
       path: "items",
-      populate: { path: "plantId" }
+      populate: { path: "plantId" },
     });
 
     if (!cart) {
-      console.log("🛒 Cart not found for user:", userId);
       return res.json({ items: [] });
     }
 
-    console.log("🛒 Raw cart data:", JSON.stringify(cart, null, 2));
-
-    // Format cart items with full plant details
-    const formattedItems = cart.items.map((item) => {
+    // format items
+    const rawItems = cart.items.map((item) => {
       const plant = item.plantId ? item.plantId.toObject() : null;
-
-      console.log("🌱 Raw plant object:", JSON.stringify(plant, null, 2));
-
       return {
-        id: item._id,              // cart item id
-        quantity: item.quantity,   // quantity in cart
-        plant: plant
-            ? {
-              id: plant._id,
-              name: plant.name,
-              description: plant.description,
-              price: plant.price,
-              stock: plant.stock,
-              discountPercentage: plant.discountPercentage,
-              sale: plant.sale,
-              salePrice: plant.salePrice,
-              featured: plant.featured,
-              isTrending: plant.isTrending,
-              isBestSeller: plant.isBestSeller,
-              createdAt: plant.createdAt,
-              image: plant.image?.imageUrl || null, // ✅ direct usable image
-            }
-            : null,
+        id: item._id,
+        quantity: item.quantity,
+        plant,
       };
     });
+
+    // add signed urls in parallel
+    const formattedItems = await Promise.all(
+        rawItems.map(async (item) => {
+          if (item.plant) {
+            const plantWithUrl = await withImageUrl(item.plant);
+            return { ...item, plant: plantWithUrl };
+          }
+          return item;
+        })
+    );
 
     res.json({ items: formattedItems });
   } catch (error) {
@@ -124,7 +138,7 @@ const updateCartItem = async (req, res) => {
     const { itemId } = req.params;
     const { quantity } = req.body;
     const cartItem = await CartItem.findByIdAndUpdate(itemId, { quantity }, { new: true });
-    res.json(cartItem);
+    res.status(204).json({ message: "CartItem updated" });
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error: error.message });
   }

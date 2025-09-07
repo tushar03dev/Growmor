@@ -79,8 +79,9 @@ export function CartProvider({children}: { children: ReactNode }) {
                     }
                 });
 
-
-            setItems(response.data.items ?? []);
+            if(Array.isArray(response.data.items)) {
+                setItems(response.data.items ?? []);
+            }
 
             toast({
                 title: "Added to cart",
@@ -136,9 +137,7 @@ export function CartProvider({children}: { children: ReactNode }) {
                     Authorization: `Bearer ${token}`
                 }
             });
-
-            setItems(response.data);
-            return true;
+            return response.status === 204;
         } catch (error) {
             console.error("Failed to update cart item quantity:", error);
             toast({title: "Error", description: "Failed to update cart item quantity"});
@@ -171,8 +170,18 @@ export function CartProvider({children}: { children: ReactNode }) {
         }
     };
 
-    const totalItems = items.reduce((total, item) => total + item.quantity, 0);
-    const totalPrice = items.reduce((total, item) => total + item.plant.price * item.quantity, 0);
+
+
+    const totalItems = items.reduce(
+        (total, item) => total + (item.quantity || 0),
+        0
+    );
+
+    const totalPrice = items.reduce(
+        (total, item) => total + ((item.plant?.price || 0) * (item.quantity || 0)),
+        0
+    );
+
 
     return (
         <CartContext.Provider
