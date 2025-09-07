@@ -152,8 +152,7 @@ export default function CheckoutPage() {
                         <p className="font-medium">
                           {selectedAddress.firstName} {selectedAddress.lastName}
                         </p>
-                        <p>{selectedAddress.addressLine1}</p>
-                        {selectedAddress.addressLine2 && <p>{selectedAddress.addressLine2}</p>}
+                        <p>{selectedAddress.street}</p>
                         <p>
                           {selectedAddress.city}, {selectedAddress.state} {selectedAddress.pincode}
                         </p>

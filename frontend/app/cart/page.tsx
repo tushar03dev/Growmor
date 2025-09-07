@@ -79,7 +79,7 @@ export default function CartPage() {
 
               <div className="flex-1">
                 <h3 className="font-medium">{item.plant.name}</h3>
-                <p className="text-primary font-semibold">${item.plant.price.toFixed(2)}</p>
+                <p className="text-primary font-semibold">₹{item.plant.price.toFixed(2)}</p>
               </div>
 
               <div className="flex items-center gap-2">
@@ -98,7 +98,7 @@ export default function CartPage() {
               </div>
 
               <div className="text-right">
-                <p className="font-semibold">${(item.plant.price * item.quantity).toFixed(2)}</p>
+                <p className="font-semibold">₹{(item.plant.price * item.quantity).toFixed(2)}</p>
                 <Button
                   variant="ghost"
                   size="sm"
@@ -120,22 +120,22 @@ export default function CartPage() {
             <div className="space-y-2 mb-4">
               <div className="flex justify-between">
                 <span>Items ({totalItems})</span>
-                <span>${totalPrice.toFixed(2)}</span>
+                <span>₹{totalPrice.toFixed(2)}</span>
               </div>
               <div className="flex justify-between">
                 <span>Shipping</span>
-                <span>{totalPrice >= 50 ? "Free" : "$9.99"}</span>
+                <span>{totalPrice >= 50 ? "Free" : "₹9.99"}</span>
               </div>
               <div className="flex justify-between">
                 <span>Tax</span>
-                <span>${(totalPrice * 0.08).toFixed(2)}</span>
+                <span>₹{(totalPrice * 0.08).toFixed(2)}</span>
               </div>
             </div>
 
             <div className="border-t pt-4 mb-6">
               <div className="flex justify-between text-lg font-semibold">
                 <span>Total</span>
-                <span>${(totalPrice + (totalPrice >= 50 ? 0 : 9.99) + totalPrice * 0.08).toFixed(2)}</span>
+                <span>₹{(totalPrice + (totalPrice >= 50 ? 0 : 9.99) + totalPrice * 0.08).toFixed(2)}</span>
               </div>
             </div>
 

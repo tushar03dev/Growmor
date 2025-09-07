@@ -29,7 +29,7 @@ export function AddressList({ onSelectAddress, selectedAddressId, showSelection 
     const loadAddresses = async () => {
         try {
             const data = await getUserAddresses()
-            setAddresses(data)
+            setAddresses(data ?? [])   // make sure it’s always an array
         } catch (error) {
             console.error("Failed to load addresses:", error)
             toast({
@@ -155,6 +155,7 @@ export function AddressList({ onSelectAddress, selectedAddressId, showSelection 
                                                 <Button
                                                     size="sm"
                                                     variant="ghost"
+                                                    title="Edit Address"
                                                     onClick={(e) => {
                                                         e.stopPropagation()
                                                         setEditingAddress(address)
@@ -166,6 +167,8 @@ export function AddressList({ onSelectAddress, selectedAddressId, showSelection 
                                                 <Button
                                                     size="sm"
                                                     variant="ghost"
+                                                    title="Delete Address"
+                                                    className="text-destructive hover:text-destructive hover:bg-destructive/10"
                                                     onClick={(e) => {
                                                         e.stopPropagation()
                                                         handleDeleteAddress(address._id!)
@@ -180,8 +183,7 @@ export function AddressList({ onSelectAddress, selectedAddressId, showSelection 
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-1 text-sm text-muted-foreground">
-                                    <p>{address.addressLine1}</p>
-                                    {address.addressLine2 && <p>{address.addressLine2}</p>}
+                                    <p>{address.street}</p>
                                     <p>
                                         {address.city}, {address.state} {address.pincode}
                                     </p>
@@ -189,17 +191,47 @@ export function AddressList({ onSelectAddress, selectedAddressId, showSelection 
                                     <p>Phone: {address.phone}</p>
                                 </div>
                                 {!showSelection && !address.isDefault && (
-                                    <Button
-                                        size="sm"
-                                        variant="outline"
-                                        className="mt-3 bg-transparent"
-                                        onClick={(e) => {
-                                            e.stopPropagation()
-                                            handleSetDefault(address._id!)
-                                        }}
-                                    >
-                                        Set as Default
-                                    </Button>
+                                    <div className="mt-3 flex gap-2">
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="bg-transparent"
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                handleSetDefault(address._id!)
+                                            }}
+                                        >
+                                            Set as Default
+                                        </Button>
+                                    </div>
+                                )}
+                                {!showSelection && (
+                                    <div className="mt-3 flex gap-2 md:hidden">
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                setEditingAddress(address)
+                                                setShowForm(true)
+                                            }}
+                                        >
+                                            <Edit className="w-4 h-4 mr-1" />
+                                            Edit
+                                        </Button>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="text-destructive border-destructive hover:bg-destructive hover:text-destructive-foreground bg-transparent"
+                                            onClick={(e) => {
+                                                e.stopPropagation()
+                                                handleDeleteAddress(address._id!)
+                                            }}
+                                        >
+                                            <Trash2 className="w-4 h-4 mr-1" />
+                                            Delete
+                                        </Button>
+                                    </div>
                                 )}
                             </CardContent>
                         </Card>

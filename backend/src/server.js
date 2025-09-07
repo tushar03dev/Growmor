@@ -11,6 +11,7 @@ import categoryRoutes from "./routes/categoryRoutes.js";
 import blogRoutes from "./routes/blogRoutes.js";
 import newsletterRoutes from "./routes/newLetterRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
+import addressRoutes from "./routes/addressRoutes.js";
 
 
 // Load environment variables
@@ -47,6 +48,7 @@ app.use("/category", categoryRoutes);
 app.use("/blogs", blogRoutes);
 app.use("/newsletter", newsletterRoutes);
 app.use("/cart", cartRoutes);
+app.use("/address", addressRoutes);
 
 // Start server
 const PORT = process.env.PORT;

@@ -21,8 +21,7 @@ export function AddressForm({ address, onSuccess, onCancel }: AddressFormProps) 
         firstName: address?.firstName || "",
         lastName: address?.lastName || "",
         phone: address?.phone || "",
-        addressLine1: address?.addressLine1 || "",
-        addressLine2: address?.addressLine2 || "",
+        street: address?.street || "",
         city: address?.city || "",
         state: address?.state || "",
         pincode: address?.pincode || "",
@@ -37,36 +36,43 @@ export function AddressForm({ address, onSuccess, onCancel }: AddressFormProps) 
     }
 
     const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault()
-        setIsLoading(true)
+        e.preventDefault();
+        setIsLoading(true);
 
         try {
-            let savedAddress: Address
+            let savedAddress: Address | null = null;
+
             if (address?._id) {
-                savedAddress = await updateAddress(address._id, formData)
+                savedAddress = await updateAddress(address._id, formData);
+                if (!savedAddress) throw new Error("Update returned null");
+
                 toast({
                     title: "Address updated",
                     description: "Your address has been updated successfully.",
-                })
+                });
             } else {
-                savedAddress = await createAddress(formData)
+                savedAddress = await createAddress(formData);
+                if (!savedAddress) throw new Error("Create returned null");
+
                 toast({
                     title: "Address added",
                     description: "Your address has been added successfully.",
-                })
+                });
             }
-            onSuccess(savedAddress)
+
+            onSuccess(savedAddress);
         } catch (error) {
-            console.error("Failed to save address:", error)
+            console.error("Failed to save address:", error);
             toast({
                 title: "Error",
                 description: "Failed to save address. Please try again.",
                 variant: "destructive",
-            })
+            });
         } finally {
-            setIsLoading(false)
+            setIsLoading(false);
         }
-    }
+    };
+
 
     return (
         <form onSubmit={handleSubmit} className="space-y-4">
@@ -103,21 +109,12 @@ export function AddressForm({ address, onSuccess, onCancel }: AddressFormProps) 
             </div>
 
             <div className="space-y-2">
-                <Label htmlFor="addressLine1">Address Line 1</Label>
+                <Label htmlFor="address">Address</Label>
                 <Input
-                    id="addressLine1"
-                    value={formData.addressLine1}
-                    onChange={(e) => handleInputChange("addressLine1", e.target.value)}
+                    id="address"
+                    value={formData.street}
+                    onChange={(e) => handleInputChange("street", e.target.value)}
                     required
-                />
-            </div>
-
-            <div className="space-y-2">
-                <Label htmlFor="addressLine2">Address Line 2 (Optional)</Label>
-                <Input
-                    id="addressLine2"
-                    value={formData.addressLine2}
-                    onChange={(e) => handleInputChange("addressLine2", e.target.value)}
                 />
             </div>
 

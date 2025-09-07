@@ -57,19 +57,18 @@ const OrderItemSchema = new Schema({
 });
 
 const AddressSchema = new Schema({
-  orderId: {
-    type: Schema.Types.ObjectId,
-    ref: "Order",
-    required: true,
-    unique: true,
-  },
-  fullName: { type: String, required: true },
+  userId: { type: Schema.Types.ObjectId, ref: "User", required: true },
+  firstName: { type: String, required: true },
+  lastName: { type: String, required: true },
   phone: { type: String, required: true },
   street: { type: String, required: true },
   city: { type: String, required: true },
   state: { type: String, required: true },
-  postal: { type: String, required: true },
+  pincode: { type: String, required: true },
   country: { type: String, required: true },
+  isDefault: { type: Boolean, default: false },
+  createdAt: { type: Date, default: Date.now },
+  updatedAt: { type: Date, default: Date.now },
 });
 
 const ViewLogSchema = new Schema({
