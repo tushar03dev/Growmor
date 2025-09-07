@@ -24,7 +24,7 @@ export default function CheckoutPage() {
     city: "",
     state: "",
     zipCode: "",
-    country: "United States",
+    country: "India",
   })
   const [orderNotes, setOrderNotes] = useState("")
 
