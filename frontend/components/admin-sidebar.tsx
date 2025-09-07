@@ -60,6 +60,11 @@ const managementItems = [
         icon: ShoppingCart,
     },
     {
+        title: "Reviews",
+        url: "/admin/reviews",
+        icon: FileText,
+    },
+    {
         title: "Blog",
         url: "/admin/blog",
         icon: FileText,

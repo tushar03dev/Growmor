@@ -1,63 +1,100 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AnalyticsChart } from "@/components/analytics-chart"
 import { Badge } from "@/components/ui/badge"
-import { TrendingUp, TrendingDown, DollarSign, ShoppingCart, Users, Package } from "lucide-react"
+import {
+    TrendingUp,
+    TrendingDown,
+    DollarSign,
+    ShoppingCart,
+    Users,
+    Package,
+    Loader2,
+    AlertTriangle,
+} from "lucide-react"
+import { getAnalyticsData, getTopProducts, getAdminStats, type AdminStats, type Plant } from "@/lib/api/admin"
+import { useAuth } from "@/components/auth-provider"
 
 export default function AnalyticsPage() {
+    const { isAdmin } = useAuth()
     const [timeRange, setTimeRange] = useState("monthly")
+    const [stats, setStats] = useState<AdminStats | null>(null)
+    const [topProducts, setTopProducts] = useState<Plant[]>([])
+    const [analyticsData, setAnalyticsData] = useState<any[]>([])
+    const [isLoading, setIsLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
 
-    const metrics = {
-        today: {
-            orders: 23,
-            revenue: 1250.5,
-            customers: 18,
-            products: 45,
-        },
-        weekly: {
-            orders: 156,
-            revenue: 8750.25,
-            customers: 89,
-            products: 234,
-        },
-        monthly: {
-            orders: 678,
-            revenue: 35420.75,
-            customers: 345,
-            products: 1023,
-        },
-        quarterly: {
-            orders: 2034,
-            revenue: 106262.25,
-            customers: 1034,
-            products: 3069,
-        },
-        yearly: {
-            orders: 8136,
-            revenue: 425049.0,
-            customers: 4136,
-            products: 12276,
-        },
+    useEffect(() => {
+        const fetchAnalyticsData = async () => {
+            if (!isAdmin) return
+
+            try {
+                setIsLoading(true)
+                setError(null)
+
+                const [adminStats, products, analytics] = await Promise.all([
+                    getAdminStats(),
+                    getTopProducts(5),
+                    getAnalyticsData(timeRange),
+                ])
+
+                setStats(adminStats)
+                setTopProducts(products)
+                setAnalyticsData(analytics)
+            } catch (err) {
+                console.error("Failed to fetch analytics data:", err)
+                setError("Failed to load analytics data. Using fallback values.")
+                setStats({
+                    totalRevenue: 0,
+                    totalOrders: 0,
+                    totalProducts: 0,
+                    totalUsers: 0,
+                    pendingOrders: 0,
+                    lowStockItems: 0,
+                    completedOrders: 0,
+                    publishedPosts: 0,
+                })
+                setTopProducts([])
+                setAnalyticsData([])
+            } finally {
+                setIsLoading(false)
+            }
+        }
+
+        fetchAnalyticsData()
+    }, [isAdmin, timeRange])
+
+    if (!isAdmin) {
+        return (
+            <div className="flex min-h-screen items-center justify-center">
+                <div className="text-center">
+                    <AlertTriangle className="h-12 w-12 text-red-500 mx-auto mb-4" />
+                    <h2 className="text-2xl font-bold">Access Denied</h2>
+                    <p className="text-muted-foreground">You don't have permission to access this page.</p>
+                </div>
+            </div>
+        )
     }
 
-    const currentMetrics = metrics[timeRange as keyof typeof metrics]
-
-    const topProducts = [
-        { name: "Monstera Deliciosa", sales: 234, revenue: 7020, trend: "up" },
-        { name: "Snake Plant", sales: 189, revenue: 5670, trend: "up" },
-        { name: "Fiddle Leaf Fig", sales: 156, revenue: 6240, trend: "down" },
-        { name: "Peace Lily", sales: 134, revenue: 3350, trend: "up" },
-        { name: "Rubber Plant", sales: 98, revenue: 2940, trend: "up" },
-    ]
+    if (isLoading) {
+        return (
+            <div className="flex min-h-screen items-center justify-center">
+                <div className="text-center">
+                    <Loader2 className="h-12 w-12 text-primary mx-auto mb-4 animate-spin" />
+                    <h2 className="text-2xl font-bold">Loading analytics...</h2>
+                </div>
+            </div>
+        )
+    }
 
     const customerSegments = [
-        { segment: "New Customers", count: 145, percentage: 35 },
-        { segment: "Returning Customers", count: 200, percentage: 48 },
-        { segment: "VIP Customers", count: 70, percentage: 17 },
+        { segment: "New Customers", count: Math.floor((stats?.totalUsers || 0) * 0.35), percentage: 35 },
+        { segment: "Returning Customers", count: Math.floor((stats?.totalUsers || 0) * 0.48), percentage: 48 },
+        { segment: "VIP Customers", count: Math.floor((stats?.totalUsers || 0) * 0.17), percentage: 17 },
     ]
 
     return (
@@ -66,6 +103,11 @@ export default function AnalyticsPage() {
                 <div>
                     <h2 className="text-3xl font-bold tracking-tight">Analytics</h2>
                     <p className="text-muted-foreground">Detailed insights into your store performance</p>
+                    {error && (
+                        <div className="mt-2 p-3 bg-yellow-50 dark:bg-yellow-950 border border-yellow-200 dark:border-yellow-800 rounded-md">
+                            <p className="text-sm text-yellow-800 dark:text-yellow-200">{error}</p>
+                        </div>
+                    )}
                 </div>
                 <Select value={timeRange} onValueChange={setTimeRange}>
                     <SelectTrigger className="w-[180px]">
@@ -98,7 +140,7 @@ export default function AnalyticsPage() {
                                 <ShoppingCart className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{currentMetrics.orders.toLocaleString()}</div>
+                                <div className="text-2xl font-bold">{stats?.totalOrders.toLocaleString() || "0"}</div>
                                 <div className="flex items-center text-xs text-green-600">
                                     <TrendingUp className="h-3 w-3 mr-1" />
                                     +12.5% from last period
@@ -112,7 +154,7 @@ export default function AnalyticsPage() {
                                 <DollarSign className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">${currentMetrics.revenue.toLocaleString()}</div>
+                                <div className="text-2xl font-bold">${stats?.totalRevenue.toLocaleString() || "0"}</div>
                                 <div className="flex items-center text-xs text-green-600">
                                     <TrendingUp className="h-3 w-3 mr-1" />
                                     +8.2% from last period
@@ -126,7 +168,7 @@ export default function AnalyticsPage() {
                                 <Users className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{currentMetrics.customers.toLocaleString()}</div>
+                                <div className="text-2xl font-bold">{stats?.totalUsers.toLocaleString() || "0"}</div>
                                 <div className="flex items-center text-xs text-green-600">
                                     <TrendingUp className="h-3 w-3 mr-1" />
                                     +15.3% from last period
@@ -136,11 +178,11 @@ export default function AnalyticsPage() {
 
                         <Card>
                             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                                <CardTitle className="text-sm font-medium">Products Sold</CardTitle>
+                                <CardTitle className="text-sm font-medium">Products</CardTitle>
                                 <Package className="h-4 w-4 text-muted-foreground" />
                             </CardHeader>
                             <CardContent>
-                                <div className="text-2xl font-bold">{currentMetrics.products.toLocaleString()}</div>
+                                <div className="text-2xl font-bold">{stats?.totalProducts.toLocaleString() || "0"}</div>
                                 <div className="flex items-center text-xs text-red-600">
                                     <TrendingDown className="h-3 w-3 mr-1" />
                                     -2.1% from last period
@@ -157,7 +199,7 @@ export default function AnalyticsPage() {
                                 <CardDescription>Revenue and orders over time</CardDescription>
                             </CardHeader>
                             <CardContent>
-                                <AnalyticsChart />
+                                <AnalyticsChart data={analyticsData} />
                             </CardContent>
                         </Card>
 
@@ -168,24 +210,31 @@ export default function AnalyticsPage() {
                             </CardHeader>
                             <CardContent>
                                 <div className="space-y-4">
-                                    {topProducts.map((product, index) => (
-                                        <div key={product.name} className="flex items-center justify-between">
-                                            <div className="flex items-center space-x-2">
-                                                <Badge variant="outline">#{index + 1}</Badge>
-                                                <div>
-                                                    <p className="text-sm font-medium">{product.name}</p>
-                                                    <p className="text-xs text-muted-foreground">
-                                                        {product.sales} sales • ${product.revenue}
-                                                    </p>
+                                    {topProducts.length > 0 ? (
+                                        topProducts.map((product, index) => (
+                                            <div key={product._id} className="flex items-center justify-between">
+                                                <div className="flex items-center space-x-2">
+                                                    <Badge variant="outline">#{index + 1}</Badge>
+                                                    <div className="flex items-center gap-2">
+                                                        {product.image?.imageUrl && (
+                                                            <img
+                                                                src={product.image.imageUrl || "/placeholder.svg"}
+                                                                alt={product.name}
+                                                                className="w-8 h-8 object-cover rounded"
+                                                            />
+                                                        )}
+                                                        <div>
+                                                            <p className="text-sm font-medium">{product.name}</p>
+                                                            <p className="text-xs text-muted-foreground">${product.price}</p>
+                                                        </div>
+                                                    </div>
                                                 </div>
-                                            </div>
-                                            {product.trend === "up" ? (
                                                 <TrendingUp className="h-4 w-4 text-green-600" />
-                                            ) : (
-                                                <TrendingDown className="h-4 w-4 text-red-600" />
-                                            )}
-                                        </div>
-                                    ))}
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <p className="text-sm text-muted-foreground">No product data available</p>
+                                    )}
                                 </div>
                             </CardContent>
                         </Card>
@@ -199,7 +248,7 @@ export default function AnalyticsPage() {
                             <CardDescription>Detailed sales analytics and trends</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <AnalyticsChart />
+                            <AnalyticsChart data={analyticsData} />
                         </CardContent>
                     </Card>
                 </TabsContent>
@@ -212,30 +261,37 @@ export default function AnalyticsPage() {
                         </CardHeader>
                         <CardContent>
                             <div className="space-y-4">
-                                {topProducts.map((product, index) => (
-                                    <div key={product.name} className="flex items-center justify-between p-4 border rounded-lg">
-                                        <div className="flex items-center space-x-4">
-                                            <Badge variant="outline">#{index + 1}</Badge>
-                                            <div>
-                                                <p className="font-medium">{product.name}</p>
-                                                <p className="text-sm text-muted-foreground">{product.sales} units sold</p>
+                                {topProducts.length > 0 ? (
+                                    topProducts.map((product, index) => (
+                                        <div key={product._id} className="flex items-center justify-between p-4 border rounded-lg">
+                                            <div className="flex items-center space-x-4">
+                                                <Badge variant="outline">#{index + 1}</Badge>
+                                                <div className="flex items-center gap-3">
+                                                    {product.image?.imageUrl && (
+                                                        <img
+                                                            src={product.image.imageUrl || "/placeholder.svg"}
+                                                            alt={product.name}
+                                                            className="w-12 h-12 object-cover rounded"
+                                                        />
+                                                    )}
+                                                    <div>
+                                                        <p className="font-medium">{product.name}</p>
+                                                        <p className="text-sm text-muted-foreground">Stock: {product.stock}</p>
+                                                    </div>
+                                                </div>
                                             </div>
-                                        </div>
-                                        <div className="text-right">
-                                            <p className="font-medium">${product.revenue.toLocaleString()}</p>
-                                            <div className="flex items-center text-sm">
-                                                {product.trend === "up" ? (
+                                            <div className="text-right">
+                                                <p className="font-medium">${product.price.toLocaleString()}</p>
+                                                <div className="flex items-center text-sm">
                                                     <TrendingUp className="h-3 w-3 text-green-600 mr-1" />
-                                                ) : (
-                                                    <TrendingDown className="h-3 w-3 text-red-600 mr-1" />
-                                                )}
-                                                <span className={product.trend === "up" ? "text-green-600" : "text-red-600"}>
-                          {product.trend === "up" ? "+12%" : "-5%"}
-                        </span>
+                                                    <span className="text-green-600">+12%</span>
+                                                </div>
                                             </div>
                                         </div>
-                                    </div>
-                                ))}
+                                    ))
+                                ) : (
+                                    <p className="text-sm text-muted-foreground">No product data available</p>
+                                )}
                             </div>
                         </CardContent>
                     </Card>
@@ -272,7 +328,7 @@ export default function AnalyticsPage() {
                                 <div className="space-y-4">
                                     <div className="flex items-center justify-between">
                                         <span className="text-sm font-medium">New Customers</span>
-                                        <span className="text-2xl font-bold text-green-600">+145</span>
+                                        <span className="text-2xl font-bold text-green-600">+{customerSegments[0].count}</span>
                                     </div>
                                     <div className="flex items-center justify-between">
                                         <span className="text-sm font-medium">Returning Rate</span>
