@@ -1,34 +1,44 @@
-import {Order} from '../models/model.js';
+import {CartItem, Order, OrderItem} from '../models/model.js';
 
 export const createOrder = async (req, res) => {
   try {
     const {
       items,
-      shippingName,
-      shippingPhone,
-      shippingAddress,
+      firstName,
+      lastName,
+      city,
+      street,
+      state,
+      pincode,
+      country,
       paymentId
     } = req.body;
     const userId = req.user.id;
+
+
+
+    const order = await Order.create({
+      user: userId,
+      paymentId,
+      firstName,
+      lastName,
+      city,
+      street,
+      state,
+      pincode,
+      country,
+      orderItems: orderItems.map(i => i._id)
+    });
 
     // Create orderItems
     const orderItems = await OrderItem.insertMany(
         items.map(item => ({
           plant: item.plantId,
-          product: item.productId,
+          orderId: order._id,
           quantity: item.quantity,
           price: item.price
         }))
     );
-
-    const order = await Order.create({
-      user: userId,
-      paymentId,
-      shippingName,
-      shippingPhone,
-      shippingAddress,
-      orderItems: orderItems.map(i => i._id)
-    });
 
     // Clear the user's cart after order
     await CartItem.deleteMany({ user: userId });

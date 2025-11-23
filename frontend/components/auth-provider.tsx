@@ -4,6 +4,11 @@ import { createContext, useContext, useState, useEffect, type ReactNode } from "
 import { useRouter } from "next/navigation"
 import axios from "axios"
 
+const api = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_URL,
+  withCredentials: true,
+})
+
 type User = {
   id?: string
   name: string
@@ -64,32 +69,38 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const adminLogin = async (email: string, password: string): Promise<boolean> => {
     try {
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/auth/admin`, { email, password })
+      console.log("Sending admin login request...");
+
+      const response = await api.post(
+          `/auth/admin`,
+          { email, password }
+      );
+
       if (response.data && response.data.token) {
-        localStorage.setItem("adminToken", response.data.token)
-        setAdminToken(response.data.token)
-        setIsAdminAuthenticated(true)
+        localStorage.setItem("adminToken", response.data.token);
+        setAdminToken(response.data.token);
+        setIsAdminAuthenticated(true);
 
         const adminUserData = {
           id: response.data.id || "admin-" + Math.random().toString(36).substr(2, 9),
           name: response.data.name || "Admin",
           email: email,
           role: "admin" as const,
-        }
+        };
 
-        setUser(adminUserData)
-        localStorage.setItem("adminUser", JSON.stringify(adminUserData))
+        setUser(adminUserData);
+        localStorage.setItem("adminUser", JSON.stringify(adminUserData));
 
-        return true
+        return true;
       } else {
-        console.error("Admin login failed. Please try again.")
-        return false
+        console.error("Admin login failed. Please try again.");
+        return false;
       }
     } catch (error) {
-      console.error("Admin login failed:", error)
-      return false
+      console.error("Admin login failed:", error);
+      return false;
     }
-  }
+  };
 
   const adminLogout = () => {
     setAdminToken(null)
@@ -102,7 +113,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const login = async (email: string, password: string): Promise<boolean> => {
     try {
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/auth/login`, { email, password })
+      const response = await api.post(`/auth/login`, { email, password },{
+        headers: { "Content-Type": "application/json" }
+      })
       if (response.data) {
         localStorage.setItem("token", response.data.token)
         alert("Login successful!")
@@ -130,7 +143,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const signup = async (name: string, email: string, password: string): Promise<boolean> => {
     try {
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/auth/signup`, { name, email, password })
+      const response = await api.post(`/auth/signup`, { name, email, password })
       if (response.data.success) {
         tempUser = { name, email }
         alert("Otp sent successfully")
@@ -151,7 +164,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       if (!email) {
         console.error("Email is required for otp verification")
       }
-      const response = await axios.post(`${process.env.NEXT_PUBLIC_API_URL}/otp/verify`, { email, otp })
+      const response = await api.post(`/otp/verify`, { email, otp })
 
       if (response.data.success) {
         localStorage.setItem("token", response.data.token)

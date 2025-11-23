@@ -45,7 +45,14 @@ const OrderSchema = new Schema({
   paymentId: { type: String, required: true },
   status: { type: String, default: "pending" },
   createdAt: { type: Date, default: Date.now },
-  address: { type: Schema.Types.ObjectId, ref: "Address" },
+  firstName: { type: String, required: true },
+  lastName: { type: String, required: true },
+  phone: { type: String, required: true },
+  street: { type: String, required: true },
+  city: { type: String, required: true },
+  state: { type: String, required: true },
+  pincode: { type: String, required: true },
+  country: { type: String, required: true },
   orderItems: [{ type: Schema.Types.ObjectId, ref: "OrderItem" }],
 });
 
