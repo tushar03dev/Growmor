@@ -34,7 +34,7 @@ export function CategorySection() {
       _id: "static-3",
       name: "Succulents",
       description: "Low-maintenance and trendy",
-      imageUrl: "/niche garage.jpg",
+      imageUrl: "/succulents.webp",
     },
   ];
 
@@ -42,42 +42,22 @@ export function CategorySection() {
   const fallbackImages = [
     "/Monstera_Deliciosa.webp",
     "/Hero_slider2.jpg",
-    "/niche garage.jpg",
+    "/succulents.webp",
   ];
 
-  useEffect(() => {
-    axios
-      .get(`${process.env.NEXT_PUBLIC_API_URL}/category`)
-      .then((res) => {
-        if (res.data && res.data.length > 0) {
-          setCategories(res.data.slice(0, 3));
-        } else {
-          // fallback if backend returns empty
-          setCategories(staticCategories);
-        }
-      })
-      .catch((err) => {
-        console.error(err);
-        // fallback if API fails
-        setCategories(staticCategories);
-      })
-      .finally(() => setLoading(false));
-  }, []);
-
-  if (loading) return <p className="text-center py-8">Loading categories...</p>;
 
   return (
-    <section className="py-12 bg-muted/50">
+    <section className="py-12 bg-muted/50 w-full">
       <div className="container">
         <div className="text-center mb-10">
-          <h2 className="text-3xl font-bold mb-2">Shop by Category</h2>
+          <h2 className="text-3xl text-center font-bold mb-2">Shop by Category</h2>
           <p className="text-muted-foreground">
             Find the perfect plants for every space
           </p>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {categories.map((cat, index) => (
+          {staticCategories.map((cat, index) => (
             <div
               key={cat._id}
               className="relative rounded-lg overflow-hidden h-64 group"

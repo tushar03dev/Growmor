@@ -59,11 +59,11 @@ export function ProductCard({ product }: ProductCardProps) {
   return (
     <Link href={`/plants/${product._id}`}>
       <div
-        className="group relative h-[90%] w-[100%] rounded-lg border bg-card overflow-hidden transition-all duration-300 hover:shadow-lg plant-card"
+        className="group relative rounded-lg border bg-card overflow-hidden transition-all duration-300 hover:shadow-lg plant-card"
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        <div className="relative w-full aspect-square overflow-hidden">
+        <div className="relative  w-full h-64 aspect-square overflow-hidden">
           <Image
             src={product.image?.imageUrl || "/placeholder.svg"}
             alt={product.name}

@@ -9,6 +9,13 @@ const nextConfig = {
                 pathname: "/**",
                 search: "*", // match any ?query=value
             }
+        ],
+        remotePatterns: [
+            {
+                protocol: "https",
+                hostname: "growmor-bucket.s3.ap-south-1.amazonaws.com",
+                pathname: "/**",
+            },
         ]
     }
 };
