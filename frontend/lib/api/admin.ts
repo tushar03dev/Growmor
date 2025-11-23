@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:5000/api"
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL;
 
 export interface AdminStats {
     totalRevenue: number
@@ -123,7 +123,7 @@ export async function getAdminStats(): Promise<AdminStats> {
     return safeApiCall(
         async () => {
             const response = await fetch(`${API_BASE_URL}/admin/stats`, getAuthConfig())
-            if (!response.ok) throw new Error("Failed to fetch stats")
+            //if (!response.ok) throw new Error("Failed to fetch stats")
             return response.json()
         },
         {

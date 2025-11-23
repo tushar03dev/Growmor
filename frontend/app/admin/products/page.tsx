@@ -1,6 +1,6 @@
 "use client";
 
-import type React from "react";
+import  React from "react";
 import axios from "axios";
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
@@ -283,15 +283,15 @@ export default function AdminProductsPage() {
                     {product.sale ? (
                       <div className="flex items-center gap-2">
                         <span className="font-bold text-primary">
-                          ${product.salePrice?.toFixed(2)}
+                          ₹{product.salePrice?.toFixed(2)}
                         </span>
                         <span className="text-sm text-muted-foreground line-through">
-                          ${product.price.toFixed(2)}
+                          ₹{product.price.toFixed(2)}
                         </span>
                       </div>
                     ) : (
                       <span className="font-bold text-primary">
-                        ${product.price.toFixed(2)}
+                        ₹{product.price.toFixed(2)}
                       </span>
                     )}
                   </div>
@@ -375,7 +375,7 @@ export default function AdminProductsPage() {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="price">Price ($) *</Label>
+              <Label htmlFor="price">Price (₹) *</Label>
               <Input
                 id="price"
                 type="number"
@@ -442,7 +442,7 @@ export default function AdminProductsPage() {
             {formData.sale && (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="salePrice">Sale Price ($)</Label>
+                  <Label htmlFor="salePrice">Sale Price (₹)</Label>
                   <Input
                     id="salePrice"
                     type="number"

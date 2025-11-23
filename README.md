@@ -21,7 +21,7 @@ A full-stack e-commerce platform for plants, built with React (Frontend) and Nod
 ### Setup
 1. Navigate to frontend directory:
    ```bash
-   cd frontend
+   cd frontend0
    ```
 
 2. Install dependencies:
