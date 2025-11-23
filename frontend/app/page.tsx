@@ -28,7 +28,7 @@ export default function Home() {
 
       {/* Blog Section */}
       <section className="py-12 bg-muted/50">
-        <div className="container">
+        <div>
           <div className="text-center mb-10">
             <h2 className="text-3xl font-bold mb-2">Plant Care Tips</h2>
             <p className="text-muted-foreground">
@@ -36,7 +36,7 @@ export default function Home() {
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="flex justify-evenly mx-12">
             {dummyBlogPosts.map((post) => (
               <BlogCard key={post.id} post={post} />
             ))}

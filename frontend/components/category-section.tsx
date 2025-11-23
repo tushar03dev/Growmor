@@ -48,7 +48,7 @@ export function CategorySection() {
 
   return (
     <section className="py-12 bg-muted/50 w-full">
-      <div className="container">
+      <div className="mx-7">
         <div className="text-center mb-10">
           <h2 className="text-3xl text-center font-bold mb-2">Shop by Category</h2>
           <p className="text-muted-foreground">

@@ -21,7 +21,7 @@ interface BlogCardProps {
 export function BlogCard({ post }: BlogCardProps) {
   return (
     <Link href={`/blog/${post.slug}`} className="group">
-      <div className="rounded-lg border bg-card overflow-hidden transition-all duration-300 hover:shadow-lg">
+      <div className="rounded-lg border bg-card overflow-hidden transition-all duration-300 hover:shadow-lg w-[95%]">
         <div className="relative aspect-video overflow-hidden">
           <Image
             src={post.image || "/placeholder.svg"}

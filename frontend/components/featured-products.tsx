@@ -135,7 +135,7 @@ export function FeaturedProducts({
 
   return (
     <section className="py-12">
-      <div className="container">
+      <div>
         <div className="text-center mb-10">
           <h2 className="text-3xl font-bold mb-2">{title}</h2>
           <p className="text-muted-foreground">{subtitle}</p>

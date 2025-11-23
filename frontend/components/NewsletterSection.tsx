@@ -50,7 +50,6 @@ export default function NewsletterSection() {
 
   return (
     <section className="py-16 bg-primary text-primary-foreground">
-      <div className="container">
         <div className="max-w-2xl mx-auto text-center">
           <h2 className="text-3xl font-bold mb-4">Join Our Newsletter</h2>
           <p className="mb-6">
@@ -78,7 +77,7 @@ export default function NewsletterSection() {
 
           {message && <p className="mt-4">{message}</p>}
         </div>
-      </div>
+
     </section>
   );
 }
