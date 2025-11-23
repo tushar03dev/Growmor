@@ -4,8 +4,8 @@ import { Facebook, Instagram, Twitter } from "lucide-react";
 export function Footer() {
   return (
     <footer className="bg-background border-t">
-      <div className="container py-10">
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
+      <div className="py-10 w-full">
+        <div className="flex justify-around">
           <div>
             <h3 className="text-lg font-semibold mb-4">GROWMOR</h3>
             <p className="text-muted-foreground">
