@@ -12,7 +12,7 @@ export const sendOTP = async (email) => {
     await transporter.sendMail({
         from: process.env.EMAIL_USER,
         to: email,
-        subject: 'Your Growmor verification OTP Code',
+        subject: 'Your Taruvin verification OTP Code',
         text: `Your OTP code is ${otp}. It will expire in 5 minutes.`,
     });
 
@@ -26,7 +26,7 @@ export const passwordResetMail = async (email) => {
     await transporter.sendMail({
         from: process.env.EMAIL_USER,
         to: email,
-        subject: 'Your Growmor Password Recovery OTP Code',
+        subject: 'Your Taruvin Password Recovery OTP Code',
         text: `Your OTP code is ${otp}. It will expire in 5 minutes.`,
     });
 

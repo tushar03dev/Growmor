@@ -18,8 +18,9 @@ export const createOrder = async (req, res) => {
 
     const userId = req.user.id;
 
-    // 1. Check if SAME address already exists for this user
-    const existingAddress = await prisma.address.findFirst({
+
+    // 1. Check for existing identical address
+    let address = await prisma.address.findFirst({
       where: {
         userId,
         firstName,
@@ -33,12 +34,9 @@ export const createOrder = async (req, res) => {
       }
     });
 
-    let addressId;
-
-    if (existingAddress) {
-      addressId = existingAddress.id;
-    } else {
-      const newAddress = await prisma.address.create({
+    // If not found, create new address
+    if (!address) {
+      address = await prisma.address.create({
         data: {
           userId,
           firstName,
@@ -51,14 +49,14 @@ export const createOrder = async (req, res) => {
           country
         }
       });
-      addressId = newAddress.id;
     }
 
-    // 2. Create Order
+    // 2. Create Order with addressId
     const order = await prisma.order.create({
       data: {
         userId,
         paymentId,
+        addressId: address.id,
         firstName,
         lastName,
         phone,
@@ -70,9 +68,9 @@ export const createOrder = async (req, res) => {
       }
     });
 
-    // Create Order Items
-    const orderItems = await prisma.orderItem.createMany({
-      data: items.map((i) => ({
+    // 3. Create Order Items
+    await prisma.orderItem.createMany({
+      data: items.map(i => ({
         orderId: order.id,
         plantId: i.plantId,
         quantity: i.quantity,
@@ -80,14 +78,17 @@ export const createOrder = async (req, res) => {
       }))
     });
 
-    //Clear user cart
+    // 4. Clear Cart
     await prisma.cartItem.deleteMany({ where: { userId } });
 
-    // Return populated order
+    // 5. Return populated order
     const fullOrder = await prisma.order.findUnique({
       where: { id: order.id },
       include: {
-        orderItems: { include: { plant: true } }
+        address: true,
+        orderItems: {
+          include: { plant: true }
+        }
       }
     });
 
@@ -105,9 +106,8 @@ export const getUserOrders = async (req, res) => {
     const orders = await prisma.order.findMany({
       where: { userId },
       include: {
-        orderItems: {
-          include: { plant: true }
-        }
+        address: true,
+        orderItems: { include: { plant: true } }
       },
       orderBy: { createdAt: "desc" }
     });
@@ -125,11 +125,9 @@ export const getOrderById = async (req, res) => {
     const userId = req.user.id;
 
     const order = await prisma.order.findFirst({
-      where: {
-        id: orderId,
-        userId
-      },
+      where: { id: orderId, userId },
       include: {
+        address: true,
         orderItems: { include: { plant: true } }
       }
     });
