@@ -1,171 +1,188 @@
-import {Cart, CartItem, Plant} from '../models/model.js';
-import {getObjectURL} from "../utils/s3Utils.js";
+import { PrismaClient } from "@prisma/client";
+import { getObjectURL } from "../utils/s3Utils.js";
 
-// UTIL: Generates a signed S3 URL for a Plant image, if available
-const withImageUrl = async (plantDoc) => {
-  if (!plantDoc) return plantDoc;
+const prisma = new PrismaClient();
 
-  // ensure plain object
-  const plant = typeof plantDoc.toObject === "function" ? plantDoc.toObject() : plantDoc;
-
-  if (!plant.image || !plant.image.key) return plant;
-
+const withImageUrl = async (plant) => {
+  if (!plant || !plant.imageKey) return plant;
   try {
-    const imageUrl = await getObjectURL(plant.image.key); // presigned URL
-    return {
-      ...plant,
-      image: {
-        ...plant.image,
-        imageUrl, // ✅ usable signed url
-      },
-    };
+    const url = await getObjectURL(plant.imageKey);
+    return { ...plant, imageUrl: url };
   } catch (err) {
-    console.error("❌ Failed to generate signed URL for plant:", plant._id, err);
-    return plant; // fallback without URL
+    console.log("generate url failed", plant.id, err);
+    return plant;
   }
 };
 
 export const getCart = async (req, res) => {
   try {
     const userId = req.user.id;
+    console.log("getCart userId", userId);
 
-    const cart = await Cart.findOne({ userId }).populate({
-      path: "items",
-      populate: { path: "plantId" },
+    const cart = await prisma.cart.findUnique({
+      where: { userId },
+      include: {
+        items: {
+          include: {
+            plant: true
+          }
+        }
+      }
     });
 
     if (!cart) {
+      console.log("cart not found");
       return res.json({ items: [] });
     }
 
-    // format items
-    const rawItems = cart.items.map((item) => {
-      const plant = item.plantId ? item.plantId.toObject() : null;
-      return {
-        id: item._id,
-        quantity: item.quantity,
-        plant,
-      };
-    });
-
-    // add signed urls in parallel
-    const formattedItems = await Promise.all(
-        rawItems.map(async (item) => {
-          if (item.plant) {
-            const plantWithUrl = await withImageUrl(item.plant);
-            return { ...item, plant: plantWithUrl };
-          }
-          return item;
+    const formatted = await Promise.all(
+        cart.items.map(async (item) => {
+          const plant = item.plant ? await withImageUrl(item.plant) : null;
+          return {
+            id: item.id,
+            quantity: item.quantity,
+            plant
+          };
         })
     );
 
-    res.json({ items: formattedItems });
+    console.log("getCart response prepared");
+    res.json({ items: formatted });
   } catch (error) {
-    console.error("❌ Error fetching cart:", error);
+    console.log("getCart error", error);
     res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
 
-const addItemToCart = async (req, res) => {
-  const userId = req.user?.id || req.body.userId;
-  const { plantId, quantity } = req.body;
-
-  if (!userId) {
-    console.log(userId);
-    return res.status(401).json({ message: "User not authenticated" });
-  }
-  if (!plantId) {
-    return res.status(400).json({ message: "PlantId must be provided" });
-  }
-  const qty = parseInt(quantity, 10);
-  if (!qty || qty <= 0) {
-    return res.status(400).json({ message: "Quantity must be a positive number" });
-  }
-
+export const addItemToCart = async (req, res) => {
   try {
-    // Fetch plant to check stock
-    const plant = await Plant.findById(plantId);
-    if (!plant) {
-      return res.status(404).json({ message: "Plant not found" });
+    const userId = req.user?.id || req.body.userId;
+    const { plantId, quantity } = req.body;
+
+    console.log("addItemToCart input", { userId, plantId, quantity });
+
+    if (!userId) return res.status(401).json({ message: "User not authenticated" });
+    if (!plantId) return res.status(400).json({ message: "PlantId must be provided" });
+
+    const qty = parseInt(quantity, 10);
+    if (!qty || qty <= 0) {
+      return res.status(400).json({ message: "Quantity must be a positive number" });
     }
 
+    const plant = await prisma.plant.findUnique({ where: { id: Number(plantId) } });
+    if (!plant) return res.status(404).json({ message: "Plant not found" });
     if (plant.stock < qty) {
       return res.status(400).json({ message: `Only ${plant.stock} item(s) in stock` });
     }
 
-    // Find or create cart
-    let cart = await Cart.findOne({ userId });
+    let cart = await prisma.cart.findUnique({ where: { userId } });
     if (!cart) {
-      cart = await Cart.create({ userId, items: [] });
+      console.log("creating new cart");
+      cart = await prisma.cart.create({ data: { userId } });
     }
 
-    // Find cart item
-    let cartItem = await CartItem.findOne({ cartId: cart._id, plantId });
-
-    if (cartItem) {
-      const newQuantity = cartItem.quantity + qty;
-      if (plant.stock < newQuantity) {
-        return res.status(400).json({ message: `Only ${plant.stock} item(s) in stock` });
-      }
-      cartItem.quantity = newQuantity;
-      await cartItem.save();
-    } else {
-      cartItem = await CartItem.create({
-        cartId: cart._id,
-        plantId,
-        quantity: qty,
-      });
-      cart.items.push(cartItem._id);
-      await cart.save();
-    }
-
-    // Populate plant details in response
-    cartItem = await CartItem.findById(cartItem._id).populate({
-      path: "plantId",
-      select:
-          "name description price stock image.discountPercentage sale salePrice isTrending isBestSeller featured",
+    let cartItem = await prisma.cartItem.findFirst({
+      where: { cartId: cart.id, plantId: Number(plantId) }
     });
 
-    res.json(cartItem);
+    if (cartItem) {
+      const updatedQuantity = cartItem.quantity + qty;
+      if (plant.stock < updatedQuantity) {
+        return res.status(400).json({ message: `Only ${plant.stock} item(s) in stock` });
+      }
+
+      cartItem = await prisma.cartItem.update({
+        where: { id: cartItem.id },
+        data: { quantity: updatedQuantity }
+      });
+
+      console.log("cartItem updated", cartItem.id);
+    } else {
+      cartItem = await prisma.cartItem.create({
+        data: {
+          cartId: cart.id,
+          plantId: Number(plantId),
+          quantity: qty
+        }
+      });
+
+      console.log("cartItem created", cartItem.id);
+    }
+
+    const populated = await prisma.cartItem.findUnique({
+      where: { id: cartItem.id },
+      include: {
+        plant: true
+      }
+    });
+
+    const plantWithUrl = populated.plant ? await withImageUrl(populated.plant) : null;
+
+    console.log("addItemToCart completed");
+    res.json({
+      id: populated.id,
+      quantity: populated.quantity,
+      plant: plantWithUrl
+    });
   } catch (error) {
-    console.error("Error in addItemToCart:", error);
+    console.log("addItemToCart error", error);
     res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
 
-const updateCartItem = async (req, res) => {
+export const updateCartItem = async (req, res) => {
   try {
     const { itemId } = req.params;
     const { quantity } = req.body;
-    const cartItem = await CartItem.findByIdAndUpdate(itemId, { quantity }, { new: true });
+
+    console.log("updateCartItem", { itemId, quantity });
+
+    await prisma.cartItem.update({
+      where: { id: Number(itemId) },
+      data: { quantity: Number(quantity) }
+    });
+
+    console.log("updateCartItem success", itemId);
     res.status(204).json({ message: "CartItem updated" });
   } catch (error) {
-    res.status(500).json({ message: 'Server Error', error: error.message });
+    console.log("updateCartItem error", error);
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
 
-const removeItemFromCart = async (req, res) => {
+export const removeItemFromCart = async (req, res) => {
   try {
     const { itemId } = req.params;
-    await CartItem.findByIdAndDelete(itemId);
-    res.json({ message: 'Cart item removed' });
+    console.log("removeItemFromCart", itemId);
+
+    await prisma.cartItem.delete({
+      where: { id: Number(itemId) }
+    });
+
+    console.log("removeItemFromCart success", itemId);
+    res.json({ message: "Cart item removed" });
   } catch (error) {
-    res.status(500).json({ message: 'Server Error', error: error.message });
+    console.log("removeItemFromCart error", error);
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
 
-const clearCart = async (req, res) => {
+export const clearCart = async (req, res) => {
   try {
     const userId = req.user.id;
-    const cart = await Cart.findOne({ userId });
+    console.log("clearCart userId", userId);
+
+    const cart = await prisma.cart.findUnique({ where: { userId } });
+
     if (cart) {
-      await CartItem.deleteMany({ cart: cart._id });
-      cart.items = [];
-      await cart.save();
+      await prisma.cartItem.deleteMany({ where: { cartId: cart.id } });
+      console.log("cart cleared", cart.id);
     }
-    res.json({ message: 'Cart cleared' });
+
+    res.json({ message: "Cart cleared" });
   } catch (error) {
-    res.status(500).json({ message: 'Server Error', error: error.message });
+    console.log("clearCart error", error);
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
 
@@ -175,4 +192,4 @@ export default {
   updateCartItem,
   removeItemFromCart,
   clearCart
-}
+};
