@@ -1,4 +1,5 @@
-import {CartItem, Order, OrderItem} from '../models/model.js';
+import { PrismaClient } from "@prisma/client";
+const prisma = new PrismaClient();
 
 export const createOrder = async (req, res) => {
   try {
@@ -6,92 +7,157 @@ export const createOrder = async (req, res) => {
       items,
       firstName,
       lastName,
-      city,
+      phone,
       street,
+      city,
       state,
       pincode,
       country,
       paymentId
     } = req.body;
+
     const userId = req.user.id;
 
-
-
-    const order = await Order.create({
-      user: userId,
-      paymentId,
-      firstName,
-      lastName,
-      city,
-      street,
-      state,
-      pincode,
-      country,
-      orderItems: orderItems.map(i => i._id)
+    // 1. Check if SAME address already exists for this user
+    const existingAddress = await prisma.address.findFirst({
+      where: {
+        userId,
+        firstName,
+        lastName,
+        phone,
+        street,
+        city,
+        state,
+        pincode,
+        country
+      }
     });
 
-    // Create orderItems
-    const orderItems = await OrderItem.insertMany(
-        items.map(item => ({
-          plant: item.plantId,
-          orderId: order._id,
-          quantity: item.quantity,
-          price: item.price
-        }))
-    );
+    let addressId;
 
-    // Clear the user's cart after order
-    await CartItem.deleteMany({ user: userId });
+    if (existingAddress) {
+      addressId = existingAddress.id;
+    } else {
+      const newAddress = await prisma.address.create({
+        data: {
+          userId,
+          firstName,
+          lastName,
+          phone,
+          street,
+          city,
+          state,
+          pincode,
+          country
+        }
+      });
+      addressId = newAddress.id;
+    }
 
-    res.status(201).json(await order.populate('orderItems'));
+    // 2. Create Order
+    const order = await prisma.order.create({
+      data: {
+        userId,
+        paymentId,
+        firstName,
+        lastName,
+        phone,
+        street,
+        city,
+        state,
+        pincode,
+        country
+      }
+    });
+
+    // Create Order Items
+    const orderItems = await prisma.orderItem.createMany({
+      data: items.map((i) => ({
+        orderId: order.id,
+        plantId: i.plantId,
+        quantity: i.quantity,
+        price: i.price
+      }))
+    });
+
+    //Clear user cart
+    await prisma.cartItem.deleteMany({ where: { userId } });
+
+    // Return populated order
+    const fullOrder = await prisma.order.findUnique({
+      where: { id: order.id },
+      include: {
+        orderItems: { include: { plant: true } }
+      }
+    });
+
+    res.status(201).json(fullOrder);
+
   } catch (error) {
-    res.status(500).json({ message: 'Server Error', error: error.message });
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
 
 export const getUserOrders = async (req, res) => {
   try {
     const userId = req.user.id;
-    const orders = await Order.find({ user: userId })
-        .populate({
-          path: 'orderItems',
-          populate: [{ path: 'plant' }, { path: 'product' }]
-        })
-        .sort({ createdAt: -1 });
+
+    const orders = await prisma.order.findMany({
+      where: { userId },
+      include: {
+        orderItems: {
+          include: { plant: true }
+        }
+      },
+      orderBy: { createdAt: "desc" }
+    });
+
     res.json(orders);
+
   } catch (error) {
-    res.status(500).json({ message: 'Server Error', error: error.message });
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
 
 export const getOrderById = async (req, res) => {
   try {
-    const { id } = req.params;
+    const orderId = Number(req.params.id);
     const userId = req.user.id;
-    const order = await Order.findOne({
-      _id: id,
-      user: userId
-    }).populate({
-      path: 'orderItems',
-      populate: [{ path: 'plant' }, { path: 'product' }]
+
+    const order = await prisma.order.findFirst({
+      where: {
+        id: orderId,
+        userId
+      },
+      include: {
+        orderItems: { include: { plant: true } }
+      }
     });
 
     if (!order) {
-      return res.status(404).json({ message: 'Order not found' });
+      return res.status(404).json({ message: "Order not found" });
     }
+
     res.json(order);
+
   } catch (error) {
-    res.status(500).json({ message: 'Server Error', error: error.message });
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
 
 export const updateOrderStatus = async (req, res) => {
   try {
-    const { id } = req.params;
+    const id = Number(req.params.id);
     const { status } = req.body;
-    const order = await Order.findByIdAndUpdate(id, { status }, { new: true });
+
+    const order = await prisma.order.update({
+      where: { id },
+      data: { status }
+    });
+
     res.json(order);
+
   } catch (error) {
-    res.status(500).json({ message: 'Server Error', error: error.message });
+    res.status(500).json({ message: "Server Error", error: error.message });
   }
 };
