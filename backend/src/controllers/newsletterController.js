@@ -1,31 +1,38 @@
-import { Newsletter } from "../models/model.js";
+import { PrismaClient } from "@prisma/client";
 import { newsletterSchema } from "../types/email.js";
 
-// POST /api/newsletter/subscribe
-export const subscribeNewsletter = async (req, res) => {
+const prisma = new PrismaClient();
+
+export const unsubscribeNewsletter = async (req, res) => {
   try {
-    // validate request body
+    console.log("unsubscribeNewsletter");
+
     const result = newsletterSchema.safeParse(req.body);
     if (!result.success) {
       return res.status(400).json({
-        message: result.error.errors[0].message, // send first error
+        message: result.error.errors[0].message
       });
     }
 
     const { email } = result.data;
 
-    // check if email already exists
-    const existing = await Newsletter.findOne({ email });
-    if (existing) {
-      return res.status(400).json({ message: "Email already subscribed" });
+    const existing = await prisma.newsletter.findUnique({
+      where: { email }
+    });
+
+    if (!existing) {
+      console.log("email not found", email);
+      return res.status(404).json({ message: "Email not subscribed" });
     }
 
-    const newSubscriber = new Newsletter({ email });
-    await newSubscriber.save();
+    await prisma.newsletter.delete({
+      where: { email }
+    });
 
-    res.status(201).json({ message: "Subscribed successfully!" });
+    console.log("unsubscribed", email);
+    res.json({ message: "Unsubscribed successfully" });
   } catch (error) {
-    console.error("Error subscribing newsletter:", error);
+    console.log("unsubscribeNewsletter error", error);
     res.status(500).json({ message: "Server error" });
   }
 };
