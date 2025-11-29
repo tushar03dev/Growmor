@@ -129,13 +129,11 @@ model Plant {
   isBestSeller Boolean  @default(false)
   createdAt    DateTime @default(now())
 
-  category Category  @relation(fields: [categoryId], references: [id])
-  discount Discount? @relation(fields: [discountId], references: [id])
-
+  category   Category    @relation(fields: [categoryId], references: [id])
+  discount   Discount?   @relation(fields: [discountId], references: [id])
+  reviews    Review[]
   cartItems  CartItem[]
   orderItems OrderItem[]
-  reviews    Review[]
-  viewLogs   ViewLog[]
 }
 
 model Cart {
@@ -161,14 +159,6 @@ model Newsletter {
   id           Int      @id @default(autoincrement())
   email        String   @unique
   subscribedAt DateTime @default(now())
-}
-
-model ViewLog {
-  id       Int      @id @default(autoincrement())
-  plantId  Int
-  viewedAt DateTime @default(now())
-
-  plant Plant @relation(fields: [plantId], references: [id])
 }
 
 enum AuthProvider {

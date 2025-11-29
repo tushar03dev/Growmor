@@ -1,184 +1,216 @@
-import { Plant } from "../models/model.js";
+import { PrismaClient } from "@prisma/client";
 import { uploadToS3, getObjectURL, deleteFromS3 } from "../utils/s3Utils.js";
 import fs from "fs";
 
-// UTIL: Generates a signed S3 URL for a Plant image, if available
-const withImageUrl = async (plantDoc) => {
-  if (!plantDoc || !plantDoc.image || !plantDoc.image.key) return plantDoc;
-  const imageUrl = await getObjectURL(plantDoc.image.key);
-  return { ...plantDoc.toObject(), image: { ...plantDoc.image, imageUrl } };
+const prisma = new PrismaClient();
+
+// Utility: adds signed image URL to plant record
+const withImageUrl = async (plant: any) => {
+  if (!plant || !plant.imageKey) return plant;
+
+  const url = await getObjectURL(plant.imageKey);
+  return { ...plant, imageUrl: url };
 };
 
 // Get all plants
-const getAllPlants = async (req, res) => {
+export const getAllPlants = async (req, res) => {
   try {
-    const plants = await Plant.find()
-      .populate("categoryId")
-      .populate("reviews");
+    console.log("getAllPlants invoked");
 
-    // Add signed URLs in parallel
-    const plantsWithUrls = await Promise.all(
-      plants.map(async (plant) => {
-        try {
-          return await withImageUrl(plant);
-        } catch (err) {
-          console.error("withImageUrl failed for plant:", plant._id, err);
-          return plant; // fallback: return raw plant without image
+    const plants = await prisma.plant.findMany({
+      include: {
+        category: true,
+        reviews: {
+          include: { user: { select: { name: true } } }
         }
-      })
+      }
+    });
+
+    const plantsWithUrls = await Promise.all(
+        plants.map(async (p) => {
+          try {
+            return await withImageUrl(p);
+          } catch (err) {
+            console.log("withImageUrl failed for plant", p.id, err);
+            return p;
+          }
+        })
     );
 
     res.json(plantsWithUrls);
   } catch (err) {
-    console.error("Error in getAllPlants:", err);
+    console.log("Error in getAllPlants:", err);
     res.status(500).json({ message: "Error fetching plants" });
   }
 };
 
 // Get trending plants
-const getTrendingPlants = async (req, res) => {
+export const getTrendingPlants = async (req, res) => {
   try {
-    const plants = await Plant.find({ isTrending: true }).populate(
-      "categoryId"
-    );
-    const plantsWithUrls = await Promise.all(plants.map(withImageUrl));
-    res.json(plantsWithUrls);
+    console.log("getTrendingPlants invoked");
+
+    const plants = await prisma.plant.findMany({
+      where: { isTrending: true },
+      include: { category: true }
+    });
+
+    const withUrls = await Promise.all(plants.map(withImageUrl));
+    res.json(withUrls);
   } catch (err) {
+    console.log("Error in getTrendingPlants:", err);
     res.status(500).json({ message: "Error fetching trending plants" });
   }
 };
 
 // Get bestseller plants
-const getBestSellerPlants = async (req, res) => {
+export const getBestSellerPlants = async (req, res) => {
   try {
-    const plants = await Plant.find({ isBestSeller: true }).populate(
-      "categoryId"
-    );
-    const plantsWithUrls = await Promise.all(plants.map(withImageUrl));
-    res.json(plantsWithUrls);
+    console.log("getBestSellerPlants invoked");
+
+    const plants = await prisma.plant.findMany({
+      where: { isBestSeller: true },
+      include: { category: true }
+    });
+
+    const withUrls = await Promise.all(plants.map(withImageUrl));
+    res.json(withUrls);
   } catch (err) {
-    res.status(500).json({ message: "Error fetching bestsellers" });
+    console.log("Error in getBestSellerPlants:", err);
+    res.status(500).json({ message: "Error fetching best sellers" });
   }
 };
 
-// Get a single plant by ID
-const getPlantById = async (req, res) => {
+// Get plant by ID
+export const getPlantById = async (req, res) => {
   try {
-    const { id } = req.params;
-    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+    console.log("getPlantById invoked with id:", req.params.id);
+
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
       return res.status(400).json({ message: "Invalid plant ID" });
     }
-    const plant = await Plant.findById(id)
-      .populate("categoryId")
-      .populate({
-        path: "reviews",
-        populate: { path: "user", select: "name" },
-      });
+
+    const plant = await prisma.plant.findUnique({
+      where: { id },
+      include: {
+        category: true,
+        reviews: { include: { user: { select: { name: true } } } }
+      }
+    });
 
     if (!plant) return res.status(404).json({ message: "Plant not found" });
 
     res.json(await withImageUrl(plant));
   } catch (err) {
+    console.log("Error in getPlantById:", err);
     res.status(500).json({ message: "Error fetching plant" });
   }
 };
 
-// Create plant with image upload to S3
-const createPlant = async (req, res) => {
-  const {
-    name,
-    description,
-    price,
-    categoryId,
-    discountPercentage,
-    isTrending,
-    isBestSeller,
-  } = req.body;
-
-  if (!name || !description || !price || !categoryId)
-    return res.status(400).json({
-      message: "Missing required fields: name, description, price, categoryId",
-    });
-
-  if (req.body.sale === "true" || req.body.sale === true) {
-    if (!req.body.salePrice) {
-      return res
-        .status(400)
-        .json({ message: "Sale price is required when sale is active" });
-    }
-  }
-  let imageData = null;
-  if (req.file) {
-    const s3Key = `plants/${Date.now()}_${req.file.originalname}`;
-    try {
-      await uploadToS3(
-        req.file.buffer || fs.readFileSync(req.file.path), // Adapt for Multer storage mode
-        s3Key,
-        req.file.mimetype
-      );
-      imageData = {
-        key: s3Key,
-        contentType: req.file.mimetype,
-        imageName: req.file.originalname,
-        size: req.file.size,
-      };
-      try {
-        if (req.file.path) fs.unlinkSync(req.file.path);
-      } catch (_) {}
-    } catch (e) {
-      try {
-        if (req.file.path) fs.unlinkSync(req.file.path);
-      } catch (_) {}
-      return res.status(500).json({ message: "Failed to upload image" });
-    }
-  }
-
+// Create plant
+export const createPlant = async (req, res) => {
   try {
-    const plant = await Plant.create({
-      name: name.trim(),
-      description: description.trim(),
-      price: parseFloat(price),
-      stock: req.body.stock ? parseInt(req.body.stock) : 0, // ✅ new
+    console.log("createPlant invoked");
+    console.log("Request body:", req.body);
+    console.log("File:", req.file);
+
+    const {
+      name,
+      description,
+      price,
       categoryId,
-      discountPercentage: discountPercentage
-        ? parseFloat(discountPercentage)
-        : 0,
-      sale: req.body.sale === "true" || req.body.sale === true, // ✅ new
-      salePrice: req.body.salePrice ? parseFloat(req.body.salePrice) : null, // ✅ new
-      featured: req.body.featured === "true" || req.body.featured === true, // ✅ new
-      isTrending: isTrending === "true" || isTrending === true,
-      isBestSeller: isBestSeller === "true" || isBestSeller === true,
-      image: imageData, // imageData already holds key, mimetype, size, (and imageUrl if you set it above)
+      discountId,
+      sale,
+      salePrice,
+      featured,
+      isTrending,
+      isBestSeller,
+      stock
+    } = req.body;
+
+    if (!name || !description || !price || !categoryId) {
+      return res.status(400).json({
+        message: "Missing required fields: name, description, price, categoryId"
+      });
+    }
+
+    let imageKey = null;
+    let contentType = null;
+    let imageName = null;
+    let size = null;
+
+    // Handle S3 upload if a file is provided
+    if (req.file) {
+      const key = `plants/${Date.now()}_${req.file.originalname}`;
+
+      await uploadToS3(
+          req.file.buffer || fs.readFileSync(req.file.path),
+          key,
+          req.file.mimetype
+      );
+
+      imageKey = key;
+      contentType = req.file.mimetype;
+      imageName = req.file.originalname;
+      size = req.file.size;
+
+      // Remove temp file if stored locally
+      if (req.file.path) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (_) {}
+      }
+    }
+
+    const plant = await prisma.plant.create({
+      data: {
+        name: name.trim(),
+        description: description.trim(),
+        price: parseFloat(price),
+        stock: stock ? parseInt(stock) : 0,
+        categoryId: parseInt(categoryId),
+        discountId: discountId ? parseInt(discountId) : null,
+        sale: sale === "true" || sale === true,
+        salePrice: salePrice ? parseFloat(salePrice) : null,
+        featured: featured === "true" || featured === true,
+        isTrending: isTrending === "true" || isTrending === true,
+        isBestSeller: isBestSeller === "true" || isBestSeller === true,
+        imageKey,
+        contentType,
+        imageName,
+        size
+      }
     });
 
     res.status(201).json(await withImageUrl(plant));
-  } catch (e) {
-    console.error("❌ Error creating plant:", e);
+  } catch (err) {
+    console.log("Error in createPlant:", err);
     res.status(500).json({ message: "Failed to create plant" });
   }
 };
 
-// Update plant (with optional image upload)
-const updatePlant = async (req, res) => {
+// Update plant
+export const updatePlant = async (req, res) => {
   try {
-    const { id } = req.params;
-    if (!id.match(/^[0-9a-fA-F]{24}$/)) {
+    console.log("updatePlant invoked with id:", req.params.id);
+    console.log("Body:", req.body);
+    console.log("File:", req.file);
+
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
       return res.status(400).json({ message: "Invalid plant ID" });
     }
-    console.log("Headers:", req.headers["content-type"]);
-    console.log("Files:", req.file);
-    console.log("Raw body keys:", Object.keys(req.body));
-    console.log("Update data:", req.body);
-    let data = { ...req.body };
 
-    // ✅ Number fields
+    const data: any = { ...req.body };
+
+    // Convert numeric fields
     if (data.price) data.price = parseFloat(data.price);
-    if (data.discountPercentage)
-      data.discountPercentage = parseFloat(data.discountPercentage);
     if (data.stock) data.stock = parseInt(data.stock);
+    if (data.discountId) data.discountId = parseInt(data.discountId);
     if (data.salePrice) data.salePrice = parseFloat(data.salePrice);
+    if (data.categoryId) data.categoryId = parseInt(data.categoryId);
 
-    // ✅ Boolean fields
+    // Convert boolean fields
     if (data.sale !== undefined)
       data.sale = data.sale === "true" || data.sale === true;
 
@@ -190,58 +222,71 @@ const updatePlant = async (req, res) => {
 
     if (data.isBestSeller !== undefined)
       data.isBestSeller =
-        data.isBestSeller === "true" || data.isBestSeller === true;
+          data.isBestSeller === "true" || data.isBestSeller === true;
 
-    // ✅ If updating image
+    // Handle optional new image upload
     if (req.file) {
-      const s3Key = `plants/${Date.now()}_${req.file.originalname}`;
+      const key = `plants/${Date.now()}_${req.file.originalname}`;
+
       await uploadToS3(
-        req.file.buffer || fs.readFileSync(req.file.path),
-        s3Key,
-        req.file.mimetype
+          req.file.buffer || fs.readFileSync(req.file.path),
+          key,
+          req.file.mimetype
       );
-      data.image = {
-        key: s3Key,
-        contentType: req.file.mimetype,
-        imageName: req.file.originalname,
-        size: req.file.size,
-      };
-      try {
-        if (req.file.path) fs.unlinkSync(req.file.path);
-      } catch (_) {}
+
+      data.imageKey = key;
+      data.contentType = req.file.mimetype;
+      data.imageName = req.file.originalname;
+      data.size = req.file.size;
+
+      if (req.file.path) {
+        try {
+          fs.unlinkSync(req.file.path);
+        } catch (_) {}
+      }
     }
 
-    const plant = await Plant.findByIdAndUpdate(id, data, {
-      new: true,
-    }).populate("categoryId");
+    const updated = await prisma.plant.update({
+      where: { id },
+      data
+    });
 
-    if (!plant) return res.status(404).json({ message: "Plant not found" });
-
-    res.json(await withImageUrl(plant));
+    res.json(await withImageUrl(updated));
   } catch (err) {
-    console.error("❌ Error updating plant:", err);
+    console.log("Error in updatePlant:", err);
     res.status(500).json({ message: "Error updating plant" });
   }
 };
 
-// Delete plant (optionally delete image from S3)
-const deletePlant = async (req, res) => {
+// Delete plant
+export const deletePlant = async (req, res) => {
   try {
-    const { id } = req.params;
-    const plant = await Plant.findByIdAndDelete(id);
-    // Optionally delete S3 image
-    if (plant && plant.image && plant.image.key) {
-      try {
-        await deleteFromS3(plant.image.key);
-      } catch (e) {}
+    console.log("deletePlant invoked with id:", req.params.id);
+
+    const id = parseInt(req.params.id);
+    if (isNaN(id)) {
+      return res.status(400).json({ message: "Invalid plant ID" });
     }
+
+    const plant = await prisma.plant.delete({
+      where: { id }
+    });
+
+    // Delete S3 file if present
+    if (plant.imageKey) {
+      try {
+        await deleteFromS3(plant.imageKey);
+      } catch (_) {}
+    }
+
     res.json({ message: "Plant deleted successfully" });
   } catch (err) {
+    console.log("Error in deletePlant:", err);
     res.status(500).json({ message: "Error deleting plant" });
   }
 };
 
-// Export controller functions
+// Export all controller functions
 export default {
   getAllPlants,
   getTrendingPlants,
@@ -249,5 +294,5 @@ export default {
   getPlantById,
   createPlant,
   updatePlant,
-  deletePlant,
+  deletePlant
 };
