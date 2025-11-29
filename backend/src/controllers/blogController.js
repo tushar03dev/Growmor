@@ -1,94 +1,120 @@
-import { Blog } from "../models/model.js";
+import {PrismaClient} from "@prisma/client";
+import {Request, Response} from "express";
 
-// Get all blogs
-const getAllBlogs = async (req, res) => {
-  try {
-    const blogs = await Blog.find({});
-    res.json(blogs);
-  } catch (error) {
-    res.status(500).json({ message: "Server Error", error: error.message });
-  }
-};
+const prisma = new PrismaClient();
 
-// Get single blog by ID
-const getBlogById = async (req, res) => {
-  const { id } = req.params;
-  if (!id.match(/^[0-9a-fA-F]{24}$/)) {
-    return res.status(400).json({ message: "Invalid blog ID" });
-  }
-  try {
-    const blog = await Blog.findById(id);
-    if (!blog) {
-      return res.status(404).json({ message: "Blog not found" });
+export const getAllBlogs = async (req: Request, res: Response) => {
+    try {
+        console.log("getAllBlogs: fetching blogs");
+        const blogs = await prisma.blog.findMany();
+        console.log("getAllBlogs: fetched", blogs.length);
+        return res.status(200).json(blogs);
+    } catch (error: any) {
+        console.error("getAllBlogs error:", error.message);
+        return res.status(500).json({message: "Server Error"});
     }
-    res.json(blog);
-  } catch (error) {
-    res.status(500).json({ message: "Server Error", error: error.message });
-  }
 };
 
-// Create a new blog
-const createBlog = async (req, res) => {
-  const { title, content, imageUrl } = req.body;
+export const getBlogById = async (req: Request, res: Response) => {
+    const {id} = req.params;
+    const blogId = Number(id);
 
-  if (!title || !content || !imageUrl) {
-    return res
-      .status(400)
-      .json({ message: "Please provide title, content, and imageUrl" });
-  }
-
-  try {
-    const blog = new Blog({ title, content, imageUrl });
-    await blog.save();
-    res.status(201).json(blog);
-  } catch (error) {
-    res.status(500).json({ message: "Server Error", error: error.message });
-  }
-};
-
-// Update blog by ID
-const updateBlog = async (req, res) => {
-  const { id } = req.params;
-  if (!id.match(/^[0-9a-fA-F]{24}$/)) {
-    return res.status(400).json({ message: "Invalid blog ID" });
-  }
-
-  try {
-    const updatedBlog = await Blog.findByIdAndUpdate(id, req.body, {
-      new: true,
-    });
-    if (!updatedBlog) {
-      return res.status(404).json({ message: "Blog not found" });
+    if (isNaN(blogId)) {
+        console.log("getBlogById: invalid id", id);
+        return res.status(400).json({message: "Invalid blog ID"});
     }
-    res.json(updatedBlog);
-  } catch (error) {
-    res.status(500).json({ message: "Server Error", error: error.message });
-  }
+
+    try {
+        console.log("getBlogById: fetching blog", blogId);
+        const blog = await prisma.blog.findUnique({where: {id: blogId}});
+        if (!blog) {
+            console.log("getBlogById: not found", blogId);
+            return res.status(404).json({message: "Blog not found"});
+        }
+        console.log("getBlogById: found", blogId);
+        return res.status(200).json(blog);
+    } catch (error: any) {
+        console.error("getBlogById error:", error.message);
+        return res.status(500).json({message: "Server Error"});
+    }
 };
 
-// Delete blog by ID
-const deleteBlog = async (req, res) => {
-  const { id } = req.params;
-  if (!id.match(/^[0-9a-fA-F]{24}$/)) {
-    return res.status(400).json({ message: "Invalid blog ID" });
-  }
-  try {
-    const deletedBlog = await Blog.findByIdAndDelete(id);
-    if (!deletedBlog) {
-      return res.status(404).json({ message: "Blog not found" });
+export const createBlog = async (req: Request, res: Response) => {
+    const {title, content, imageUrl} = req.body;
+
+    if (!title || !content || !imageUrl) {
+        console.log("createBlog: missing fields");
+        return res.status(400).json({message: "Missing required fields"});
     }
-    res.json({ message: "Blog deleted successfully" });
-  } catch (error) {
-    res.status(500).json({ message: "Server Error", error: error.message });
-  }
+
+    try {
+        console.log("createBlog: creating blog", title);
+        const blog = await prisma.blog.create({
+            data: {title, content, imageUrl},
+        });
+        console.log("createBlog: created", blog.id);
+        return res.status(201).json(blog);
+    } catch (error: any) {
+        console.error("createBlog error:", error.message);
+        return res.status(500).json({message: "Server Error"});
+    }
+};
+
+export const updateBlog = async (req: Request, res: Response) => {
+    const {id} = req.params;
+    const blogId = Number(id);
+
+    if (isNaN(blogId)) {
+        console.log("updateBlog: invalid id", id);
+        return res.status(400).json({message: "Invalid blog ID"});
+    }
+
+    try {
+        console.log("updateBlog: updating", blogId);
+        const blog = await prisma.blog.update({
+            where: {id: blogId},
+            data: req.body,
+        });
+        console.log("updateBlog: updated", blogId);
+        return res.status(200).json(blog);
+    } catch (error: any) {
+        if (error.code === "P2025") {
+            console.log("updateBlog: not found", blogId);
+            return res.status(404).json({message: "Blog not found"});
+        }
+        console.error("updateBlog error:", error.message);
+        return res.status(500).json({message: "Server Error"});
+    }
+};
+
+export const deleteBlog = async (req: Request, res: Response) => {
+    const {id} = req.params;
+    const blogId = Number(id);
+
+    if (isNaN(blogId)) {
+        console.log("deleteBlog: invalid id", id);
+        return res.status(400).json({message: "Invalid blog ID"});
+    }
+
+    try {
+        console.log("deleteBlog: deleting", blogId);
+        await prisma.blog.delete({where: {id: blogId}});
+        console.log("deleteBlog: deleted", blogId);
+        return res.status(200).json({message: "Blog deleted successfully"});
+    } catch (error: any) {
+        if (error.code === "P2025") {
+            console.log("deleteBlog: not found", blogId);
+            return res.status(404).json({message: "Blog not found"});
+        }
+        console.error("deleteBlog error:", error.message);
+        return res.status(500).json({message: "Server Error"});
+    }
 };
 
 export default {
-  getAllBlogs,
-  getBlogById,
-  createBlog,
-  updateBlog,
-  deleteBlog,
+    getAllBlogs,
+    getBlogById,
+    createBlog,
+    updateBlog,
+    deleteBlog,
 };
-
-export { getAllBlogs, getBlogById, createBlog, updateBlog, deleteBlog };
