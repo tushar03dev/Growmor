@@ -113,13 +113,27 @@ export const completeSignUp = async (req, res, next) => {
 
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      const user = await prisma.user.create({
-        data:{name: name, email:createPayload.email, password: hashedPassword},
-      });
-      console.log("completeSignUp: user saved");
+      let user;
+      try{
+        user = await prisma.user.create({
+          data:{
+            name,
+            email:createPayload.email,
+            password: hashedPassword
+          },
+        });
+        console.log("completeSignUp: user saved");
+      }catch(prismaError){
+        if(prismaError.code ==="P202"){
+          console.log("completeSignUp: unique constraint, user exists", createPayload.email);
+          res.status(409).json({ message: "User already exists" });
+          return;
+        }
+        throw prismaError;
+      }
 
       const token = jwt.sign(
-          { user: user._id, email: createPayload.email },
+          { user: user.id, email: createPayload.email },
           process.env.JWT_SECRET,
           { expiresIn: "1d" }
       );
@@ -186,7 +200,7 @@ export const signIn = async (req, res, next) => {
 
     console.log("signIn: generating JWT");
     const token = jwt.sign(
-        { user: user._id, email: user.email },
+        { user: user.id, email: user.email },
         process.env.JWT_SECRET,
         { expiresIn: "1d" }
     );
@@ -292,43 +306,44 @@ export const changePassword = async (req, res, next) => {
 };
 
 export const adminLogin = async (req, res, next) => {
-  console.log("adminLogin: incoming request", req.body);
-
+  console.log("adminLogin: incoming request");
   const { email, password } = req.body;
+
   if (!email || !password) {
-    console.log("adminLogin: invalid input");
-    return res.status(400).send("Invalid email or password");
+    console.log("adminLogin: missing credentials");
+    return res.status(400).json({ message: "Invalid email or password" });
   }
 
   try {
-    console.log("adminLogin: checking admin");
     const admin = await prisma.user.findUnique({
-      where: { email: email }
+      where: { email },
     });
 
     if (!admin) {
-      console.log("adminLogin: admin not found");
-      return res.status(401).json({ message: "Invalid email" });
+      console.log("adminLogin: admin not found", email);
+      return res.status(401).json({ message: "Invalid email or password" });
     }
 
-    if (password !== admin.password) {
-      console.log("adminLogin: password mismatch");
-      return res.status(401).json({ message: "Invalid password" });
+    if (!admin.isAdmin) {
+      console.log("adminLogin: user is not admin", email);
+      return res.status(403).json({ message: "Access denied" });
     }
 
-    console.log("adminLogin: generating JWT");
-    const token = jwt.sign(
-        { id: admin._id, email: admin.email, isAdmin: true },
-        process.env.JWT_SECRET,
-        { expiresIn: "2d" }
+
+    const isMatch = await bcrypt.compare(password, admin.password);
+    if (!isMatch) {
+      console.log("adminLogin: invalid password", email);
+      return res.status(401).json({ message: "Invalid email or password" });
+    }
+
+    const token = signToken(
+        { userId: admin.id, email: admin.email, isAdmin: true },
+        "2d"
     );
 
-    console.log("adminLogin: login successful");
-
-    res.status(200).json({ success: true, token, name: admin.name });
+    return res.status(200).json({ success: true, token, name: admin.name });
   } catch (err) {
-    console.log("adminLogin: error occurred", err);
-    res.status(400).send("Access to Admin Panel Denied");
+    console.error("adminLogin: error", err);
     next(err);
   }
 };

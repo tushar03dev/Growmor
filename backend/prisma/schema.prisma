@@ -8,14 +8,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Admin {
-  id           Int          @id @default(autoincrement())
-  email        String       @unique
-  name         String
-  password     String
-  authProvider AuthProvider @default(LOCAL)
-}
-
 model User {
   id           Int          @id @default(autoincrement())
   name         String
@@ -28,6 +20,7 @@ model User {
   reviews      Review[]
   addresses    Address[]
   createdAt    DateTime     @default(now())
+  isAdmin      Boolean      @default(false)
 }
 
 model Category {
