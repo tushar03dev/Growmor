@@ -144,7 +144,7 @@ export function FeaturedProducts({
         {loading ? (
           <p className="text-center">Loading...</p>
         ) : (
-          <div className="h-[60%] flex justify-evenly">
+            <div className="flex flex-col justify-evenly sm:flex-row sm:justify-evenly">
             {products.map((product) => (
               <ProductCard key={product._id} product={product} />
             ))}

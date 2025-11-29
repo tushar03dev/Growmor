@@ -63,7 +63,7 @@ export function ProductCard({ product }: ProductCardProps) {
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
-        <div className="relative  w-full h-64 aspect-square overflow-hidden">
+        <div className="relative w-full h-64 aspect-square overflow-hidden">
           <Image
             src={product.image?.imageUrl || "/placeholder.svg"}
             alt={product.name}

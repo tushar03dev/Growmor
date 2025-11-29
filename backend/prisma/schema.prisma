@@ -1,0 +1,191 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Admin {
+  id           Int          @id @default(autoincrement())
+  email        String       @unique
+  name         String
+  password     String
+  authProvider AuthProvider @default(LOCAL)
+}
+
+model User {
+  id           Int          @id @default(autoincrement())
+  name         String
+  email        String       @unique
+  password     String?
+  authProvider AuthProvider @default(LOCAL)
+  googleId     String?      @unique
+  cart         Cart?
+  orders       Order[]
+  reviews      Review[]
+  addresses    Address[]
+  createdAt    DateTime     @default(now())
+}
+
+model Category {
+  id          Int     @id @default(autoincrement())
+  name        String  @unique
+  description String
+  plants      Plant[]
+}
+
+model Discount {
+  id       Int      @id @default(autoincrement())
+  percent  Float
+  startsAt DateTime
+  endsAt   DateTime
+  plants   Plant[]
+}
+
+model Review {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  plantId   Int
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+
+  user  User  @relation(fields: [userId], references: [id])
+  plant Plant @relation(fields: [plantId], references: [id])
+}
+
+model Order {
+  id        Int         @id @default(autoincrement())
+  userId    Int
+  paymentId String
+  status    OrderStatus @default(PENDING)
+  createdAt DateTime    @default(now())
+
+  firstName String
+  lastName  String
+  phone     String
+  street    String
+  city      String
+  state     String
+  pincode   String
+  country   String
+
+  user       User        @relation(fields: [userId], references: [id])
+  orderItems OrderItem[]
+}
+
+model OrderItem {
+  id       Int   @id @default(autoincrement())
+  orderId  Int
+  plantId  Int
+  quantity Int
+  price    Float
+
+  order Order @relation(fields: [orderId], references: [id])
+  plant Plant @relation(fields: [plantId], references: [id])
+}
+
+model Address {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  firstName String
+  lastName  String
+  phone     String
+  street    String
+  city      String
+  state     String
+  pincode   String
+  country   String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Blog {
+  id        Int      @id @default(autoincrement())
+  title     String
+  content   String
+  imageUrl  String
+  createdAt DateTime @default(now())
+}
+
+model Plant {
+  id          Int    @id @default(autoincrement())
+  name        String
+  description String
+  price       Float
+  stock       Int    @default(0)
+
+  imageUrl    String?
+  imageKey    String?
+  contentType String?
+  imageName   String?
+  size        Int?
+
+  categoryId   Int
+  discountId   Int?
+  sale         Boolean  @default(false)
+  salePrice    Float?
+  featured     Boolean  @default(false)
+  isTrending   Boolean  @default(false)
+  isBestSeller Boolean  @default(false)
+  createdAt    DateTime @default(now())
+
+  category Category  @relation(fields: [categoryId], references: [id])
+  discount Discount? @relation(fields: [discountId], references: [id])
+
+  cartItems  CartItem[]
+  orderItems OrderItem[]
+  reviews    Review[]
+  viewLogs   ViewLog[]
+}
+
+model Cart {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @unique
+  createdAt DateTime @default(now())
+
+  user  User       @relation(fields: [userId], references: [id])
+  items CartItem[]
+}
+
+model CartItem {
+  id       Int @id @default(autoincrement())
+  cartId   Int
+  plantId  Int
+  quantity Int @default(1)
+
+  cart  Cart  @relation(fields: [cartId], references: [id])
+  plant Plant @relation(fields: [plantId], references: [id])
+}
+
+model Newsletter {
+  id           Int      @id @default(autoincrement())
+  email        String   @unique
+  subscribedAt DateTime @default(now())
+}
+
+model ViewLog {
+  id       Int      @id @default(autoincrement())
+  plantId  Int
+  viewedAt DateTime @default(now())
+
+  plant Plant @relation(fields: [plantId], references: [id])
+}
+
+enum AuthProvider {
+  GOOGLE
+  LOCAL
+}
+
+enum OrderStatus {
+  PENDING
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
