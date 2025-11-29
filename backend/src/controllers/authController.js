@@ -1,6 +1,5 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { Admin, User } from "../models/model.js";
 import dotenv from "dotenv";
 import { passwordResetMail, sendOTP } from "./otpController.js";
 import { getRedisClient } from "../config/redis.js";
@@ -10,12 +9,15 @@ import { signInPayload } from "../types/signIn.js";
 import { emailOnlyPayload } from "../types/passwordReset.js";
 import { changePasswordPayload } from "../types/changePassword.js";
 import zod from "zod";
+import {PrismaClient} from "@prisma/client";
 
 function flattenZodError(err) {
   return err.flatten().fieldErrors;
 }
 
 dotenv.config();
+
+const prisma = new PrismaClient();
 
 export const signUp = async (req, res, next) => {
   console.log("signUp: incoming request", req.body);
@@ -31,7 +33,9 @@ export const signUp = async (req, res, next) => {
 
   try {
     console.log("signUp: checking existing user");
-    const existingUser = await User.findOne({ email: createPayload.email });
+    const existingUser = await prisma.user.findUnique({
+      where: { email: createPayload.email },
+    });
 
     if (existingUser) {
       console.log("signUp: user already exists", existingUser.email);
@@ -109,13 +113,9 @@ export const completeSignUp = async (req, res, next) => {
 
       const hashedPassword = await bcrypt.hash(password, 10);
 
-      const user = new User({
-        name,
-        email: createPayload.email,
-        password: hashedPassword,
+      const user = await prisma.user.create({
+        data:{name: name, email:createPayload.email, password: hashedPassword},
       });
-
-      await user.save();
       console.log("completeSignUp: user saved");
 
       const token = jwt.sign(
@@ -162,7 +162,9 @@ export const signIn = async (req, res, next) => {
 
   try {
     console.log("signIn: fetching user");
-    const user = await User.findOne({ email: createPayload.email });
+    const user = await prisma.user.findUnique({
+      where: { email: createPayload.email },
+    });
 
     if (!user) {
       console.log("signIn: user does not exist");
@@ -212,7 +214,9 @@ export const passwordReset = async (req, res, next) => {
 
   try {
     console.log("passwordReset: checking user existence");
-    const user = await User.find({ email: createPayload.email });
+    const user = await prisma.user.findUnique({
+        where: { email: createPayload.email },
+    });
 
     if (!user) {
       console.log("passwordReset: user not found");
@@ -254,7 +258,9 @@ export const changePassword = async (req, res, next) => {
     if (savedOtp && createPayload.otp === savedOtp) {
       console.log("changePassword: OTP matched");
 
-      const user = await User.find({ email: createPayload.email });
+      const user = await prisma.user.findUnique({
+        where: { email: createPayload.email }
+      });
 
       if (!user) {
         console.log("changePassword: user does not exist");
@@ -264,10 +270,10 @@ export const changePassword = async (req, res, next) => {
       console.log("changePassword: hashing password");
       const hashedPassword = await bcrypt.hash(createPayload.password, 10);
 
-      await User.updateOne(
-          { email: createPayload.email },
-          { password: hashedPassword }
-      );
+      await prisma.user.update({
+        where: { email: createPayload.email },
+        data: {password: hashedPassword},
+      });
 
       console.log("changePassword: password updated");
 
@@ -296,7 +302,9 @@ export const adminLogin = async (req, res, next) => {
 
   try {
     console.log("adminLogin: checking admin");
-    const admin = await Admin.findOne({ email });
+    const admin = await prisma.user.findUnique({
+      where: { email: email }
+    });
 
     if (!admin) {
       console.log("adminLogin: admin not found");
