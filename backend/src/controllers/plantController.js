@@ -3,7 +3,7 @@ import { uploadToS3, getObjectURL, deleteFromS3 } from "../utils/s3Utils.js";
 import fs from "fs";
 
 // Utility: adds signed image URL to plant record
-const withImageUrl = async (plant: any) => {
+const withImageUrl = async (plant) => {
   if (!plant || !plant.imageKey) return plant;
 
   const url = await getObjectURL(plant.imageKey);
@@ -199,7 +199,7 @@ export const updatePlant = async (req, res) => {
       return res.status(400).json({ message: "Invalid plant ID" });
     }
 
-    const data: any = { ...req.body };
+    const data = { ...req.body };
 
     // Convert numeric fields
     if (data.price) data.price = parseFloat(data.price);

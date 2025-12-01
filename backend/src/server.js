@@ -8,7 +8,7 @@ import { connectRedis } from "./config/redis.js";
 import plantRoutes from "./routes/PlantRoutes.js";
 import categoryRoutes from "./routes/categoryRoutes.js";
 import blogRoutes from "./routes/blogRoutes.js";
-import newsletterRoutes from "./routes/newLetterRoutes.js";
+import newsletterRoutes from "./routes/newsLetterRoutes.js";
 import cartRoutes from "./routes/cartRoutes.js";
 import addressRoutes from "./routes/addressRoutes.js";
 import paymentRoutes from "./routes/paymentRoutes.js";

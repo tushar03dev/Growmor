@@ -1,19 +1,18 @@
-import {Request, Response} from "express";
 import prisma from "../utils/prisma.js";
 
-export const getAllBlogs = async (req: Request, res: Response) => {
+export const getAllBlogs = async (req, res) => {
     try {
         console.log("getAllBlogs: fetching blogs");
         const blogs = await prisma.blog.findMany();
         console.log("getAllBlogs: fetched", blogs.length);
         return res.status(200).json(blogs);
-    } catch (error: any) {
+    } catch (error) {
         console.error("getAllBlogs error:", error.message);
         return res.status(500).json({message: "Server Error"});
     }
 };
 
-export const getBlogById = async (req: Request, res: Response) => {
+export const getBlogById = async (req, res) => {
     const {id} = req.params;
     const blogId = Number(id);
 
@@ -31,13 +30,13 @@ export const getBlogById = async (req: Request, res: Response) => {
         }
         console.log("getBlogById: found", blogId);
         return res.status(200).json(blog);
-    } catch (error: any) {
+    } catch (error) {
         console.error("getBlogById error:", error.message);
         return res.status(500).json({message: "Server Error"});
     }
 };
 
-export const createBlog = async (req: Request, res: Response) => {
+export const createBlog = async (req, res) => {
     const {title, content, imageUrl} = req.body;
 
     if (!title || !content || !imageUrl) {
@@ -52,13 +51,13 @@ export const createBlog = async (req: Request, res: Response) => {
         });
         console.log("createBlog: created", blog.id);
         return res.status(201).json(blog);
-    } catch (error: any) {
+    } catch (error) {
         console.error("createBlog error:", error.message);
         return res.status(500).json({message: "Server Error"});
     }
 };
 
-export const updateBlog = async (req: Request, res: Response) => {
+export const updateBlog = async (req, res) => {
     const {id} = req.params;
     const blogId = Number(id);
 
@@ -75,7 +74,7 @@ export const updateBlog = async (req: Request, res: Response) => {
         });
         console.log("updateBlog: updated", blogId);
         return res.status(200).json(blog);
-    } catch (error: any) {
+    } catch (error) {
         if (error.code === "P2025") {
             console.log("updateBlog: not found", blogId);
             return res.status(404).json({message: "Blog not found"});
@@ -85,7 +84,7 @@ export const updateBlog = async (req: Request, res: Response) => {
     }
 };
 
-export const deleteBlog = async (req: Request, res: Response) => {
+export const deleteBlog = async (req, res) => {
     const {id} = req.params;
     const blogId = Number(id);
 
@@ -99,7 +98,7 @@ export const deleteBlog = async (req: Request, res: Response) => {
         await prisma.blog.delete({where: {id: blogId}});
         console.log("deleteBlog: deleted", blogId);
         return res.status(200).json({message: "Blog deleted successfully"});
-    } catch (error: any) {
+    } catch (error) {
         if (error.code === "P2025") {
             console.log("deleteBlog: not found", blogId);
             return res.status(404).json({message: "Blog not found"});
