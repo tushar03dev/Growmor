@@ -1,7 +1,6 @@
-import prismaClient from '@prisma/client';
+import prisma from "../utils/prisma.js";
 import bcrypt from 'bcryptjs';
 
-const prisma = new prismaClient();
 
 // GET /api/user/profile
 export const getUserProfile = async (req, res) => {

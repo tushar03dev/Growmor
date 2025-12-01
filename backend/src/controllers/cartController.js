@@ -1,7 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+import prisma from "../utils/prisma.js";
 import { getObjectURL } from "../utils/s3Utils.js";
 
-const prisma = new PrismaClient();
 
 const withImageUrl = async (plant) => {
   if (!plant || !plant.imageKey) return plant;

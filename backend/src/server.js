@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 import morgan from "morgan";
-import connectDB from "./config/db.js";
+import connectDB from "./utils/prisma.js";
 import otpRoutes from "./routes/otpRoutes.js";
 import { connectRedis } from "./config/redis.js";
 import plantRoutes from "./routes/PlantRoutes.js";

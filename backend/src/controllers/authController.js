@@ -9,7 +9,7 @@ import { signInPayload } from "../types/signIn.js";
 import { emailOnlyPayload } from "../types/passwordReset.js";
 import { changePasswordPayload } from "../types/changePassword.js";
 import zod from "zod";
-import {PrismaClient} from "@prisma/client";
+import prisma from "../utils/prisma.js";
 
 function flattenZodError(err) {
   return err.flatten().fieldErrors;
@@ -17,7 +17,6 @@ function flattenZodError(err) {
 
 dotenv.config();
 
-const prisma = new PrismaClient();
 
 export const signUp = async (req, res, next) => {
   console.log("signUp: incoming request", req.body);

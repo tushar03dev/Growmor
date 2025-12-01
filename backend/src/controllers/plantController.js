@@ -1,8 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+import prisma from "../utils/prisma.js";
 import { uploadToS3, getObjectURL, deleteFromS3 } from "../utils/s3Utils.js";
 import fs from "fs";
-
-const prisma = new PrismaClient();
 
 // Utility: adds signed image URL to plant record
 const withImageUrl = async (plant: any) => {

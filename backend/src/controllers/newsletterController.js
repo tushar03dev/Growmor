@@ -1,7 +1,6 @@
-import { PrismaClient } from "@prisma/client";
+import prisma from "../utils/prisma.js";
 import { newsletterSchema } from "../types/email.js";
 
-const prisma = new PrismaClient();
 
 export const unsubscribeNewsletter = async (req, res) => {
   try {
